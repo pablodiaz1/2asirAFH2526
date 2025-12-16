@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Comparación de IA por primer token</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+* { box-sizing: border-box; }
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background-color: lightgreen;
+  color: #111827;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Fondo fractal oculto visualmente */
+#fractal-bg {
+  display: none;
+}
+
+/* Título estilo “pastilla” */
+h1 {
+  margin-bottom: 18px;
+  text-align: center;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #0f172a;
+  position: relative;
+  padding: 10px 26px 14px;
+  display: inline-block;
+  background: linear-gradient(135deg, #f9fafb, #e5e7eb);
+  border-radius: 999px;
+  box-shadow:
+    0 14px 32px rgba(148, 163, 184, 0.75),
+    0 0 0 1px rgba(148, 163, 184, 0.8);
+}
+
+
+.container {
+  max-width: 950px;
+  width: 95vw;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 24px;
+  border-radius: 14px;
+  box-shadow:
+    0 18px 45px rgba(148, 163, 184, 0.7),
+    0 0 0 1px rgba(209, 213, 219, 0.9);
+  display: flex;
+  flex-direction: column;   /* título -> gráfica -> botones en columna */
+  align-items: center;
+  gap: 20px;
+}
+
+canvas {
+  max-width: 100%;
+}
+
+/* Botones debajo de la gráfica */
+.botones-linea {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.botones-linea a {
+  text-decoration: none;
+}
+
+.botones-linea button {
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  letter-spacing: 0.03em;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.btn-primera {
+  background: linear-gradient(135deg, #7f00ff, #3b82f6);
+  color: #f9fafb;
+  box-shadow: 0 0 14px rgba(127, 0, 255, 0.4);
+}
+
+.btn-otras {
+  background: #4b5563;
+  color: #f9fafb;
+  box-shadow: 0 0 0 1px rgba(75, 85, 99, 0.9);
+}
+
+.botones-linea button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(148, 163, 184, 0.9);
+  opacity: 0.97;
+}
+.botones-linea button:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(148, 163, 184, 1);
+}
+
+/* Botón Volver al inicio (izquierda) */
+.btn-container {
+  width: 100%;
+  text-align: left;
+  margin-top: 16px;
+  padding-left: 24px;
+}
+.btn-nav {
+  display: inline-block;
+  padding: 9px 18px;
+  background: linear-gradient(135deg, #1f2933, #2563eb);
+  color: #f9fafb;
+  text-decoration: none;
+  border-radius: 999px;
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  box-shadow: 0 8px 18px rgba(148, 163, 184, 0.9);
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.btn-nav:hover {
+  background: linear-gradient(135deg, #2563eb, #7f00ff);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(148, 163, 184, 1);
+}
+
+/* Botón Ir a tk/s (derecha) */
+.bt-container {
+  width: 100%;
+  text-align: right;
+  margin-top: 8px;
+  padding-right: 24px;
+}
+.bt-nav {
+  display: inline-block;
+  padding: 9px 18px;
+  background: linear-gradient(135deg, #1f2933, #2563eb);
+  color: #f9fafb;
+  text-decoration: none;
+  border-radius: 999px;
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  box-shadow: 0 8px 18px rgba(148, 163, 184, 0.9);
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.bt-nav:hover {
+  background: linear-gradient(135deg, #2563eb, #7f00ff);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(148, 163, 184, 1);
+}
+</style>
+</head>
+<body>
+
+<canvas id="fractal-bg"></canvas>
+<center>
+<div class="container">
+  <h1>Comparación del primer token según el promt</h1>
+
+  <canvas id="tkChart" width="1000" height="550"></canvas>
+
+  <div class="botones-linea">
+    <a href="primertp.html">
+      <button class="btn-primera">MAC</button>
+    </a>
+    <a href="primertpW.html">
+      <button class="btn-otras">Windows</button>
+    </a>
+  </div>
+</div>
+
+<div class="btn-container">
+  <a href="index.html" class="btn-nav">Volver al inicio</a>
+</div>
+<div class="bt-container">
+  <a href="tokp.html" class="bt-nav">Ir a tk/s promt</a>
+</div>
+</center>
+<script>
+const bgCanvas = document.getElementById("fractal-bg");
+const bgCtx = bgCanvas.getContext("2d");
+
+function resizeBG() {
+  bgCanvas.width = window.innerWidth;
+  bgCanvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resizeBG);
+resizeBG();
+
+const particleCount = 80;
+const maxDistance = 140;
+const particles = [];
+
+class Particle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * bgCanvas.width;
+    this.y = Math.random() * bgCanvas.height;
+    const speed = 0.4 + Math.random() * 0.6;
+    const angle = Math.random() * Math.PI * 2;
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed;
+    this.radius = 1 + Math.random() * 1.5;
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    if (this.x < 0 || this.x > bgCanvas.width) this.vx *= -1;
+    if (this.y < 0 || this.y > bgCanvas.height) this.vy *= -1;
+  }
+  draw() {
+    bgCtx.beginPath();
+    bgCtx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    bgCtx.fillStyle = "rgba(130, 200, 255, 0.9)";
+    bgCtx.fill();
+  }
+}
+
+for (let i = 0; i < particleCount; i++) particles.push(new Particle());
+
+function drawConnections() {
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < maxDistance) {
+        const alpha = 1 - dist / maxDistance;
+        bgCtx.strokeStyle = `rgba(0, 200, 255, ${alpha * 0.6})`;
+        bgCtx.lineWidth = 1;
+        bgCtx.beginPath();
+        bgCtx.moveTo(particles[i].x, particles[i].y);
+        bgCtx.lineTo(particles[j].x, particles[j].y);
+        bgCtx.stroke();
+      }
+    }
+  }
+}
+
+function animateBG() {
+  bgCtx.fillStyle = "rgba(0, 0, 0, 0.35)";
+  bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+  particles.forEach(p => { p.update(); p.draw(); });
+  drawConnections();
+  requestAnimationFrame(animateBG);
+}
+animateBG();
+</script>
+
+<script>
+const labels = [
+  "Primer Promt",
+  "Segundo Promt",
+  "Tercer Promt",
+];
+
+const data = {
+  labels: labels,
+  datasets: [
+    {
+      label: "Liquid lfm2-1.2b",
+      data: [1.5, 1.6, 1.8],
+      backgroundColor: "rgba(30, 58, 138, 0.7)"
+    },
+    {
+      label: "Essential AI esentalai/rnj-1",
+      data: [2.09, 2.47, 3.10],
+      backgroundColor: "rgba(127, 0, 255, 0.7)"
+    },
+    {
+      label: "Qwen qwen3-vl-4b",
+      data: [0.2, 0.3, 0.2],
+      backgroundColor: "rgba(0, 158, 142, 0.7)"
+    }
+  ]
+};
+
+const config = {
+  type: "bar",
+  data: data,
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: "top",
+        labels: {
+          color: "#111827"
+        }
+      },
+      tooltip: {
+        enabled: true,
+        callbacks: {
+          label: function (context) {
+            const label = context.dataset.label || "";
+            const value = context.parsed.y || 0;
+            return `${label}: ${value} primer token`;
+          }
+        }
+      },
+      title: {
+        display: true,
+        text: "Primer token por IA y tipo de primer Promt",
+        color: "#111827",
+        font: {
+          size: 16
+        }
+      }
+    },
+    scales: {
+      x: {
+        ticks: {
+          color: "#111827"
+        },
+        grid: {
+          color: "rgba(148, 163, 184, 0.3)"
+        }
+      },
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: "Tiempo que tarda en dar el primer token",
+          color: "#111827"
+        },
+        ticks: {
+          color: "#111827"
+        },
+        grid: {
+          color: "rgba(148, 163, 184, 0.3)"
+        }
+      }
+    }
+  }
+};
+
+const ctx = document.getElementById("tkChart").getContext("2d");
+const tkChart = new Chart(ctx, config);
+</script>
+
+</body>
+</html>
