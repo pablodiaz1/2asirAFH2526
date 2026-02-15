@@ -1,1 +1,565 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Manual de Cuantización</title>
+  <style>
+    :root{
+      --bg: #0b1020;
+      --panel: rgba(255,255,255,.06);
+      --panel2: rgba(255,255,255,.08);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.70);
+      --line: rgba(255,255,255,.14);
+      --accent: #6ee7ff;
+      --accent2:#a78bfa;
+      --ok:#34d399;
+      --warn:#fbbf24;
+      --bad:#fb7185;
+      --shadow: 0 20px 60px rgba(0,0,0,.45);
+      --radius: 18px;
+      --radius2: 14px;
+    }
 
+    *{ box-sizing: border-box; }
+    body{
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color: var(--text);
+      background:
+        radial-gradient(900px 500px at 20% 0%, rgba(110,231,255,.18), transparent 60%),
+        radial-gradient(700px 420px at 85% 10%, rgba(167,139,250,.18), transparent 60%),
+        radial-gradient(700px 500px at 50% 100%, rgba(52,211,153,.10), transparent 60%),
+        var(--bg);
+      line-height: 1.55;
+    }
+
+    a{ color: var(--accent); text-decoration: none; }
+    a:hover{ text-decoration: underline; }
+
+    .wrap{
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 18px 64px;
+    }
+
+    /* Header */
+    header{
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      border: 1px solid var(--line);
+      border-radius: calc(var(--radius) + 6px);
+      box-shadow: var(--shadow);
+      padding: 26px 22px;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background: radial-gradient(600px 200px at 10% 10%, rgba(110,231,255,.22), transparent 60%),
+                  radial-gradient(520px 220px at 90% 30%, rgba(167,139,250,.18), transparent 60%);
+      pointer-events:none;
+      filter: blur(0px);
+    }
+    header > *{ position: relative; }
+    .kicker{
+      display:inline-flex;
+      gap:10px;
+      align-items:center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .kicker .dot{
+      width: 10px; height: 10px; border-radius: 999px;
+      background: linear-gradient(180deg, var(--accent), var(--accent2));
+      box-shadow: 0 0 18px rgba(110,231,255,.35);
+    }
+
+    h1{
+      margin: 12px 0 6px;
+      font-size: clamp(28px, 3.2vw, 44px);
+      letter-spacing: -0.02em;
+    }
+    .sub{
+      color: var(--muted);
+      max-width: 70ch;
+      margin: 0 0 14px;
+    }
+
+    .quick{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .pill{
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* Layout */
+    .grid{
+      display:grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+      margin-top: 18px;
+    }
+    @media (max-width: 920px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    /* Sidebar */
+    nav{
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      position: sticky;
+      top: 14px;
+      height: fit-content;
+    }
+    nav h2{
+      font-size: 14px;
+      color: var(--muted);
+      margin: 6px 8px 10px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .navlist{ list-style:none; padding:0; margin:0; }
+    .navlist a{
+      display:block;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      color: rgba(255,255,255,.86);
+    }
+    .navlist a:hover{
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.10);
+      text-decoration:none;
+    }
+
+    /* Cards / Sections */
+    main{
+      display:flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    section{
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      overflow:hidden;
+    }
+    section h3{
+      margin: 0 0 6px;
+      font-size: 20px;
+      letter-spacing: -0.01em;
+    }
+    section p{ margin: 8px 0; color: rgba(255,255,255,.84); }
+
+    .two{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 14px;
+      align-items: start;
+    }
+    @media (max-width: 820px){
+      .two{ grid-template-columns: 1fr; }
+    }
+
+    .imgbox{
+      background: var(--panel2);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: var(--radius2);
+      padding: 10px;
+      overflow:hidden;
+    }
+    .imgbox figure{ margin:0; }
+    .imgbox img{
+      width: 100%;
+      height: auto;
+      display:block;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.15);
+    }
+    .caption{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Command box */
+    .cmd{
+      margin: 10px 0 0;
+      background: rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 14px; /* <- sin picos */
+      padding: 12px 12px 10px;
+      overflow:auto;
+      position: relative;
+    }
+    .cmd::before{
+      content:"Comando";
+      position:absolute;
+      top: 10px;
+      right: 12px;
+      font-size: 11px;
+      color: rgba(255,255,255,.55);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    pre{
+      margin: 0;
+      white-space: pre;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 13px;
+      color: rgba(255,255,255,.90);
+      padding-right: 72px; /* para que no choque con el "Comando" */
+    }
+    code{ color: inherit; }
+
+    /* Badges */
+    .badges{
+      display:flex; flex-wrap:wrap; gap:10px;
+      margin-top: 10px;
+    }
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      color: rgba(255,255,255,.84);
+      font-size: 13px;
+    }
+    .b-ok{ border-color: rgba(52,211,153,.35); }
+    .b-warn{ border-color: rgba(251,191,36,.35); }
+    .b-bad{ border-color: rgba(251,113,133,.35); }
+    .dot2{
+      width: 9px; height: 9px; border-radius: 999px;
+      background: currentColor; opacity:.95;
+    }
+    .b-ok .dot2{ color: var(--ok); }
+    .b-warn .dot2{ color: var(--warn); }
+    .b-bad .dot2{ color: var(--bad); }
+
+    footer{
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align:center;
+      opacity:.9;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header id="top">
+      <div class="kicker"><span class="dot"></span> Guía práctica · Ollama + Python + GGUF</div>
+      <h1>Manual de Cuantización</h1>
+      <p class="sub">
+        La cuantización reduce el tamaño del modelo cambiando la precisión de los números:
+        <strong>menos RAM</strong>, <strong>más velocidad</strong>, ideal para equipos modestos.
+      </p>
+
+      <div class="quick">
+        <span class="pill">FP16 → más preciso</span>
+        <span class="pill">Q4 → menos preciso pero más rápido</span>
+        <span class="pill">Formato GGUF para ejecutar local</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <nav aria-label="Navegación">
+        <h2>Contenido</h2>
+        <ul class="navlist">
+          <li><a href="#que-es">¿Qué es la cuantización?</a></li>
+          <li><a href="#instalar-ollama">1) Instalar Ollama</a></li>
+          <li><a href="#comprobar">2) Comprobar versión y modelos</a></li>
+          <li><a href="#descargar">3) Descargar modelos</a></li>
+          <li><a href="#ejecutar">4) Ejecutar un modelo</a></li>
+          <li><a href="#venv">5) Crear entorno Python</a></li>
+          <li><a href="#libs">6) Instalar librerías</a></li>
+          <li><a href="#script">7) Probar con script (gemma_test.py)</a></li>
+          <li><a href="#gguf">8) Convertir a GGUF</a></li>
+          <li><a href="#quant">9) Cuantizar (Q4)</a></li>
+          <li><a href="#comparacion">10) Comparar tamaños</a></li>
+          <li><a href="#lmstudio">11) Importar a LM Studio</a></li>
+          <li><a href="#conclusion">Conclusión</a></li>
+        </ul>
+      </nav>
+
+      <main>
+        <section id="que-es">
+          <div class="two">
+            <div>
+              <h3>¿Qué es la cuantización?</h3>
+              <p>
+                La cuantización reduce el tamaño del modelo cambiando la precisión numérica.
+                Por ejemplo:
+              </p>
+              <div class="badges">
+                <span class="badge b-ok"><span class="dot2"></span> Menos RAM</span>
+                <span class="badge b-ok"><span class="dot2"></span> Más velocidad</span>
+                <span class="badge b-warn"><span class="dot2"></span> Ligera pérdida de calidad</span>
+              </div>
+              <p style="margin-top:10px; color:var(--muted);">
+                Ejemplo: Modelo normal → FP16 (más preciso, más pesado) · Modelo Q4 → menos precisión, mucho más rápido.
+              </p>
+            </div>
+
+            
+          </div>
+        </section>
+
+        <section id="instalar-ollama">
+          <div class="two">
+            <div>
+              <h3>1) Instalar Ollama (macOS)</h3>
+              <p>Instalación con Homebrew:</p>
+              <div class="cmd">
+                <pre><code>brew install ollama</code></pre>
+              </div>
+            </div>
+            <div class="imgbox">
+              <figure>
+                <img src="img/ollama_install.png" alt="Captura instalación Ollama" />
+                <figcaption class="caption">Añade una captura del terminal si quieres.</figcaption>
+              </figure>
+            </div>
+          </div>
+        </section>
+
+        <section id="comprobar">
+          <div class="two">
+            <div>
+              <h3>2) Ver versión y modelos disponibles</h3>
+              <p>Comandos para comprobar la instalación y listar modelos:</p>
+              <div class="cmd">
+                <pre><code>ollama --version
+ollama list</code></pre>
+              </div>
+            </div>
+            <div class="imgbox">
+              <figure>
+                <img src="img/ollama_list.png" alt="Salida de ollama list" />
+                <figcaption class="caption">Aquí puedes poner la salida de “ollama list”.</figcaption>
+              </figure>
+            </div>
+          </div>
+        </section>
+
+        <section id="descargar">
+          <div class="two">
+            <div>
+              <h3>3) Descargar modelos</h3>
+              <p>Ejemplos de descarga de modelos:</p>
+              <div class="cmd">
+                <pre><code>ollama pull llama3
+ollama pull mistral
+ollama pull gemma3:1b</code></pre>
+              </div>
+            </div>
+            <div class="imgbox">
+              <figure>
+                <img src="img/pull_models.png" alt="Descarga de modelos" />
+                <figcaption class="caption">Captura opcional de la descarga (pull).</figcaption>
+              </figure>
+            </div>
+          </div>
+        </section>
+
+        <section id="ejecutar">
+          <div class="two">
+            <div>
+              <h3>4) Ejecutar un modelo y probar</h3>
+              <p>Ejecuta el modelo y hazle preguntas. Para salir:</p>
+              <div class="cmd">
+                <pre><code>ollama run llama3</code></pre>
+              </div>
+              <p style="color:var(--muted); margin-top:8px;">Para salir:</p>
+              <div class="cmd">
+                <pre><code>/bye</code></pre>
+              </div>
+            </div>
+            <div class="imgbox">
+              <figure>
+                <img src="img/ollama_run.png" alt="Ejecución de un modelo con ollama run" />
+                <figcaption class="caption">Puedes poner un ejemplo de conversación.</figcaption>
+              </figure>
+            </div>
+          </div>
+        </section>
+
+        <section id="venv">
+          <div class="two">
+            <div>
+              <h3>5) Crear entorno Python (recomendado)</h3>
+              <p>Crear y activar el entorno virtual:</p>
+              <div class="cmd">
+                <pre><code>python3 -m venv venv
+source venv/bin/activate</code></pre>
+              </div>
+            </div>
+           
+          </div>
+        </section>
+
+        <section id="libs">
+          <div class="two">
+            <div>
+              <h3>6) Instalar librerías necesarias</h3>
+              <p>Instala dependencias para trabajar con modelos:</p>
+              <div class="cmd">
+                <pre><code>pip install transformers torch accelerate</code></pre>
+              </div>
+            </div>
+            
+          </div>
+        </section>
+
+        <section id="script">
+          <div class="two">
+            <div>
+              <h3>7) Probar con un script (gemma_test.py)</h3>
+              <p>
+                Crea un script que cargue el modelo, envíe una pregunta y muestre la respuesta para verificar que funciona.
+              </p>
+              <p>Ejecutar el script:</p>
+              <div class="cmd">
+                <pre><code>python gemma_test.py</code></pre>
+              </div>
+            </div>
+            <div class="imgbox">
+              <figure>
+                <img src="img/gemma_test.png" alt="Ejecución del script gemma_test.py" />
+                <figcaption class="caption">Puedes añadir una captura del resultado.</figcaption>
+              </figure>
+            </div>
+          </div>
+        </section>
+
+        <section id="gguf">
+          <div class="two">
+            <div>
+              <h3>8) Conversión a formato GGUF</h3>
+              <p>Para ejecutar el modelo localmente se utiliza el formato GGUF:</p>
+              <div class="cmd">
+                <pre><code>python convert-hf-to-gguf.py lfm2-1.2b --outfile lfm2.gguf</code></pre>
+              </div>
+            </div>
+            
+          </div>
+        </section>
+
+        <section id="quant">
+          <div class="two">
+            <div>
+              <h3>9) Paso clave: cuantización del modelo (Q4)</h3>
+              <p>Ejemplo de cuantización a <strong>q4_k_m</strong>:</p>
+              <div class="cmd">
+                <pre><code>python convert-hf-to-gguf.py lfm2-1.2b \
+  --outtype q4_k_m \
+  --outfile lfm2-1.2b-q4.gguf</code></pre>
+              </div>
+            </div>
+            
+          </div>
+        </section>
+
+        <section id="comparacion">
+          <div class="two">
+            <div>
+              <h3>10) Comparar tamaños</h3>
+              <p>Después de cuantizar, compara los archivos generados:</p>
+              <div class="cmd">
+                <pre><code>ls -lh lfm2*</code></pre>
+              </div>
+              <p style="color:var(--muted); margin-top:10px;">
+                Aquí puedes insertar una imagen con la tabla/salida donde se ve el peso de cada modelo.
+              </p>
+            </div>
+            <div class="imgbox">
+              <figure>
+                <img src="img/size_compare.png" alt="Comparación de tamaños" />
+                <figcaption class="caption">Ruta configurable de comparación de tamaños.</figcaption>
+              </figure>
+            </div>
+          </div>
+        </section>
+
+        <section id="lmstudio">
+          <div class="two">
+            <div>
+              <h3>11) Importar a LM Studio</h3>
+              <p>Importa el modelo cuantizado a LM Studio , los dos modelos, se ve perfectamente por el peso de cada una y diferenciar cual es la cuantizada:</p>
+              <div class="cmd">
+                <pre><code>lms import ~/models/lfm2-1.2b-q4_K_M.gguf</code></pre>
+              </div>
+            </div>
+            <div class="imgbox">
+              <figure>
+                <img src="img/lmstudio_import.png" alt="Importar en LM Studio" />
+                <figcaption class="caption">Añade captura del LM Studio si quieres.</figcaption>
+              </figure>
+            </div>
+          </div>
+        </section>
+
+        <section id="conclusion">
+          <div class="two">
+            <div>
+              <h3>Conclusión</h3>
+              <p>
+                La IA cuantizada ocupa menos espacio y consume menos recursos. Además, genera el primer token más rápido y ofrece
+                mayor velocidad de respuesta. Como contrapartida, puede haber una ligera pérdida de precisión frente al modelo sin cuantizar.
+              </p>
+              <div class="badges">
+                <span class="badge b-ok"><span class="dot2"></span> Menos espacio</span>
+                <span class="badge b-ok"><span class="dot2"></span> Menos recursos</span>
+                <span class="badge b-ok"><span class="dot2"></span> Más velocidad</span>
+                <span class="badge b-warn"><span class="dot2"></span> Menos precisión</span>
+              </div>
+              <p style="margin-top:12px; color:var(--muted);">
+                Consejo: prueba la misma pregunta en el modelo sin cuantizar y en el cuantizado para ver diferencias en tokens y respuesta.
+              </p>
+            </div>
+            <div class="imgbox">
+              <figure>
+                <img src="img/conclusion.png" alt="Imagen de conclusión" />
+                <figcaption class="caption">Imagen opcional final (por ejemplo comparativa).</figcaption>
+              </figure>
+			  <figure>
+                <img src="img/conclusion.png" alt="Imagen de conclusión" />
+                <figcaption class="caption">Imagen opcional final (por ejemplo comparativa).</figcaption>
+              </figure>
+            </div>
+			
+          </div>
+        </section>
+
+        <footer>
+          Manual hecho por Pablo Diaz Castellanos 2ºASIR
+          · <a href="#top">Volver arriba</a>
+        </footer>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
