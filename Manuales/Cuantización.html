@@ -265,6 +265,41 @@
       text-align:center;
       opacity:.9;
     }
+
+    /* ============================
+       VISOR DE IMÁGENES (LIGHTBOX)
+       ============================ */
+    .lightbox{
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.85);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      cursor: zoom-out;
+      padding: 20px;
+    }
+
+    .lightbox img{
+      max-width: 92%;
+      max-height: 92%;
+      border-radius: 12px;
+      box-shadow: 0 0 40px rgba(0,0,0,0.6);
+      animation: zoomIn 0.25s ease;
+    }
+
+    @keyframes zoomIn{
+      from{ transform: scale(0.85); opacity:0; }
+      to{ transform: scale(1); opacity:1; }
+    }
+
+    .imgbox img{
+      cursor: zoom-in;
+    }
   </style>
 </head>
 
@@ -323,8 +358,6 @@
                 Ejemplo: Modelo normal → FP16 (más preciso, más pesado) · Modelo Q4 → menos precisión, mucho más rápido.
               </p>
             </div>
-
-            
           </div>
         </section>
 
@@ -417,7 +450,6 @@ ollama pull gemma3:1b</code></pre>
 source venv/bin/activate</code></pre>
               </div>
             </div>
-           
           </div>
         </section>
 
@@ -430,7 +462,6 @@ source venv/bin/activate</code></pre>
                 <pre><code>pip install transformers torch accelerate</code></pre>
               </div>
             </div>
-            
           </div>
         </section>
 
@@ -464,7 +495,6 @@ source venv/bin/activate</code></pre>
                 <pre><code>python convert-hf-to-gguf.py lfm2-1.2b --outfile lfm2.gguf</code></pre>
               </div>
             </div>
-            
           </div>
         </section>
 
@@ -479,7 +509,6 @@ source venv/bin/activate</code></pre>
   --outfile lfm2-1.2b-q4.gguf</code></pre>
               </div>
             </div>
-            
           </div>
         </section>
 
@@ -545,12 +574,11 @@ source venv/bin/activate</code></pre>
                 <img src="../imgIA/cuan8.jpg" alt="IA sin cuantización" />
                 <figcaption class="caption">IA sin cuantización.</figcaption>
               </figure>
-			  <figure>
+              <figure>
                 <img src="../imgIA/cuan9.jpg" alt="IA con cuantización" />
                 <figcaption class="caption">IA con cuantización.</figcaption>
               </figure>
             </div>
-			
           </div>
         </section>
 
@@ -561,5 +589,40 @@ source venv/bin/activate</code></pre>
       </main>
     </div>
   </div>
+
+  <!-- VISOR DE IMÁGENES -->
+  <div class="lightbox" id="lightbox" aria-hidden="true">
+    <img src="" alt="Imagen ampliada">
+  </div>
+
+  <script>
+    const lightbox = document.getElementById("lightbox");
+    const lightboxImg = lightbox.querySelector("img");
+
+    document.querySelectorAll(".imgbox img").forEach(img => {
+      img.addEventListener("click", () => {
+        lightbox.style.display = "flex";
+        lightbox.setAttribute("aria-hidden", "false");
+        lightboxImg.src = img.src;
+        lightboxImg.alt = img.alt || "Imagen ampliada";
+      });
+    });
+
+    lightbox.addEventListener("click", () => {
+      lightbox.style.display = "none";
+      lightbox.setAttribute("aria-hidden", "true");
+      lightboxImg.src = "";
+    });
+
+    // Cerrar con ESC (extra útil, no cambia el diseño)
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && lightbox.style.display === "flex") {
+        lightbox.style.display = "none";
+        lightbox.setAttribute("aria-hidden", "true");
+        lightboxImg.src = "";
+      }
+    });
+  </script>
 </body>
 </html>
+
