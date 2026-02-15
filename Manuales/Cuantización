@@ -339,7 +339,7 @@
             </div>
             <div class="imgbox">
               <figure>
-                <img src="img/ollama_install.png" alt="Captura instalación Ollama" />
+                <img src="imgIA/cuan1.jpg" alt="Captura instalación Ollama" />
                 <figcaption class="caption">Añade una captura del terminal si quieres.</figcaption>
               </figure>
             </div>
@@ -358,7 +358,7 @@ ollama list</code></pre>
             </div>
             <div class="imgbox">
               <figure>
-                <img src="img/ollama_list.png" alt="Salida de ollama list" />
+                <img src="imgIA/cuan2.jpg" alt="Salida de ollama list" />
                 <figcaption class="caption">Aquí puedes poner la salida de “ollama list”.</figcaption>
               </figure>
             </div>
@@ -378,7 +378,7 @@ ollama pull gemma3:1b</code></pre>
             </div>
             <div class="imgbox">
               <figure>
-                <img src="img/pull_models.png" alt="Descarga de modelos" />
+                <img src="imgIA/cuan3.jpg" alt="Descarga de modelos" />
                 <figcaption class="caption">Captura opcional de la descarga (pull).</figcaption>
               </figure>
             </div>
@@ -400,7 +400,7 @@ ollama pull gemma3:1b</code></pre>
             </div>
             <div class="imgbox">
               <figure>
-                <img src="img/ollama_run.png" alt="Ejecución de un modelo con ollama run" />
+                <img src="imgIA/cuan4.jpg" alt="Ejecución de un modelo con ollama run" />
                 <figcaption class="caption">Puedes poner un ejemplo de conversación.</figcaption>
               </figure>
             </div>
@@ -448,7 +448,7 @@ source venv/bin/activate</code></pre>
             </div>
             <div class="imgbox">
               <figure>
-                <img src="img/gemma_test.png" alt="Ejecución del script gemma_test.py" />
+                <img src="imgIA/cuan5.jpg" alt="Ejecución del script gemma_test.py" />
                 <figcaption class="caption">Puedes añadir una captura del resultado.</figcaption>
               </figure>
             </div>
@@ -497,7 +497,7 @@ source venv/bin/activate</code></pre>
             </div>
             <div class="imgbox">
               <figure>
-                <img src="img/size_compare.png" alt="Comparación de tamaños" />
+                <img src="imgIA/cuan6.jpg" alt="Comparación de tamaños" />
                 <figcaption class="caption">Ruta configurable de comparación de tamaños.</figcaption>
               </figure>
             </div>
@@ -515,7 +515,7 @@ source venv/bin/activate</code></pre>
             </div>
             <div class="imgbox">
               <figure>
-                <img src="img/lmstudio_import.png" alt="Importar en LM Studio" />
+                <img src="imgIA/cuan7.jpg" alt="Importar en LM Studio" />
                 <figcaption class="caption">Añade captura del LM Studio si quieres.</figcaption>
               </figure>
             </div>
@@ -542,12 +542,12 @@ source venv/bin/activate</code></pre>
             </div>
             <div class="imgbox">
               <figure>
-                <img src="img/conclusion.png" alt="Imagen de conclusión" />
-                <figcaption class="caption">Imagen opcional final (por ejemplo comparativa).</figcaption>
+                <img src="imgIA/cuan8.jpg" alt="IA sin cuantización" />
+                <figcaption class="caption">IA sin cuantización.</figcaption>
               </figure>
 			  <figure>
-                <img src="img/conclusion.png" alt="Imagen de conclusión" />
-                <figcaption class="caption">Imagen opcional final (por ejemplo comparativa).</figcaption>
+                <img src="imgIA/cuan9.jpg" alt="IA con cuantización" />
+                <figcaption class="caption">IA con cuantización.</figcaption>
               </figure>
             </div>
 			
