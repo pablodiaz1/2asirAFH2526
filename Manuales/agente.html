@@ -1,1 +1,634 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Manual: Agente IA Local (OpenCode + Ollama)</title>
+  <style>
+    :root{
+  --bg: #0f0f0f;
+  --card: rgba(255,255,255,.05);
+  --card2: rgba(255,255,255,.08);
+  --text: rgba(255,255,255,.92);
+  --muted: rgba(255,255,255,.65);
+  --line: rgba(255,255,255,.12);
+  --shadow: 0 16px 50px rgba(0,0,0,.55);
+  --r: 18px;
+  --r2: 14px;
 
+  /* NUEVOS COLORES */
+  --accent: #f97316;   /* naranja */
+  --accent2: #fb923c;  /* naranja claro */
+  --accent3: #facc15;  /* amarillo suave */
+  --danger: #ef4444;
+  --warn: #f59e0b;
+}
+
+    *{ box-sizing: border-box; }
+    html{ scroll-behavior: smooth; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color: var(--text);
+      background:
+        radial-gradient(900px 500px at 10% 0%, rgba(96,165,250,.18), transparent 60%),
+        radial-gradient(800px 520px at 90% 0%, rgba(167,139,250,.14), transparent 60%),
+        radial-gradient(900px 600px at 50% 110%, rgba(34,197,94,.12), transparent 60%),
+        var(--bg);
+      line-height: 1.55;
+    }
+
+    a{ color: inherit; text-decoration: none; }
+    a:hover{ text-decoration: underline; }
+
+    .wrap{
+      max-width: 1150px;
+      margin: 0 auto;
+      padding: 18px 16px 72px;
+    }
+
+    /* Topbar */
+    .topbar{
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(10px);
+      background: rgba(11,15,23,.65);
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+    .topbar-inner{
+      max-width: 1150px;
+      margin: 0 auto;
+      padding: 12px 16px;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 220px;
+    }
+    .logo{
+      width: 34px; height:34px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent2), var(--accent3));
+      box-shadow: 0 12px 40px rgba(96,165,250,.18);
+    }
+    .brand b{ display:block; letter-spacing:-.01em; }
+    .brand small{ color: var(--muted); display:block; margin-top: -2px; }
+
+    .topnav{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    .chip{
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      color: rgba(255,255,255,.86);
+      font-size: 13px;
+    }
+    .chip:hover{
+      background: rgba(255,255,255,.08);
+      text-decoration:none;
+    }
+
+    /* Hero */
+    .hero{
+      margin-top: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      border: 1px solid var(--line);
+      border-radius: calc(var(--r) + 6px);
+      box-shadow: var(--shadow);
+      padding: 22px;
+      overflow:hidden;
+      position: relative;
+    }
+    .hero::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(600px 220px at 10% 15%, rgba(96,165,250,.22), transparent 60%),
+        radial-gradient(600px 240px at 90% 0%, rgba(167,139,250,.18), transparent 60%);
+      pointer-events:none;
+    }
+    .hero > *{ position: relative; }
+
+    .hero h1{
+      margin: 4px 0 6px;
+      font-size: clamp(26px, 3vw, 40px);
+      letter-spacing: -0.02em;
+    }
+    .hero p{ margin: 0; color: var(--muted); max-width: 85ch; }
+
+    .hero-grid{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 14px;
+      align-items: start;
+    }
+    @media (max-width: 900px){
+      .hero-grid{ grid-template-columns: 1fr; }
+    }
+
+    .kpis{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .kpi{
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: rgba(255,255,255,.85);
+    }
+    .kpi strong{ color: #fff; }
+
+    .sidecard{
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: var(--r);
+      padding: 14px;
+    }
+    .sidecard h3{
+      margin: 0 0 6px;
+      font-size: 14px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.78);
+    }
+    .sidecard ul{
+      margin: 10px 0 0;
+      padding-left: 18px;
+      color: rgba(255,255,255,.82);
+    }
+    .sidecard li{ margin: 6px 0; color: rgba(255,255,255,.82); }
+    .note{
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: var(--r2);
+      background: rgba(251,191,36,.10);
+      border: 1px solid rgba(251,191,36,.25);
+      color: rgba(255,255,255,.86);
+      font-size: 13px;
+    }
+
+    /* Main layout */
+    .content{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1fr 340px;
+      gap: 14px;
+      align-items: start;
+    }
+    @media (max-width: 980px){
+      .content{ grid-template-columns: 1fr; }
+    }
+
+    /* Timeline */
+    .timeline{
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      position: relative;
+    }
+    .timeline h2{
+      margin: 0 0 10px;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    .step{
+      display:grid;
+      grid-template-columns: 22px 1fr;
+      gap: 12px;
+      padding: 14px 0;
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+    .step:first-of-type{ border-top: 0; padding-top: 6px; }
+
+    .dot{
+      width: 18px; height: 18px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      margin-top: 3px;
+      box-shadow: 0 0 0 6px rgba(34,197,94,.08);
+    }
+
+    .step h3{
+      margin: 0 0 6px;
+      font-size: 17px;
+      letter-spacing: -0.01em;
+    }
+    .step p{ margin: 6px 0; color: rgba(255,255,255,.84); }
+
+    .split{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items: start;
+      margin-top: 10px;
+    }
+    @media (max-width: 760px){
+      .split{ grid-template-columns: 1fr; }
+    }
+
+    /* Image card */
+    figure{
+      margin:0;
+      background: var(--card2);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: var(--r2);
+      padding: 10px;
+      overflow:hidden;
+    }
+    figure img{
+      width: 100%;
+      height: auto;
+      display:block;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.15);
+      cursor: zoom-in;
+    }
+    figcaption{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Command box (visual, redondeado) */
+    .cmd{
+      background: rgba(0,0,0,.35);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 14px;
+      padding: 12px 12px 10px;
+      overflow:auto;
+      position: relative;
+      box-shadow: 0 10px 30px rgba(0,0,0,.18);
+    }
+    .cmd::before{
+      content:"COMANDO";
+      position:absolute;
+      top: 10px;
+      right: 12px;
+      font-size: 11px;
+      color: rgba(255,255,255,.55);
+      letter-spacing: .12em;
+    }
+    .cmd pre{
+      margin:0;
+      white-space: pre;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: rgba(255,255,255,.92);
+      padding-right: 72px;
+    }
+
+    /* Right sidebar */
+    .aside{
+      position: sticky;
+      top: 74px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .aside h3{
+      margin: 0 0 10px;
+      font-size: 14px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.78);
+    }
+    .aside .mini{
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .mini a{
+      display:block;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      background: rgba(255,255,255,.04);
+      color: rgba(255,255,255,.86);
+    }
+    .mini a:hover{
+      border-color: rgba(255,255,255,.10);
+      background: rgba(255,255,255,.07);
+      text-decoration:none;
+    }
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      margin-top: 10px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      font-size: 13px;
+      color: rgba(255,255,255,.86);
+    }
+    .tag .b{ width: 9px; height: 9px; border-radius: 999px; background: var(--accent); }
+
+    /* Lightbox */
+    .lightbox{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.86);
+      display:none;
+      justify-content:center;
+      align-items:center;
+      z-index: 9999;
+      cursor: zoom-out;
+      padding: 20px;
+    }
+    .lightbox img{
+      max-width: 92%;
+      max-height: 92%;
+      border-radius: 12px;
+      box-shadow: 0 0 45px rgba(0,0,0,.65);
+      animation: zoom .25s ease;
+    }
+    @keyframes zoom{ from{ transform: scale(.86); opacity:0; } to{ transform: scale(1); opacity:1; } }
+
+    footer{
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align:center;
+      opacity:.9;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <b>Agente IA Local</b>
+          <small>OpenCode + Ollama (macOS)</small>
+        </div>
+      </div>
+
+      <div class="topnav" aria-label="Atajos">
+        <a class="chip" href="#definicion">¿Qué es?</a>
+        <a class="chip" href="#requisitos">Requisitos</a>
+        <a class="chip" href="#ollama">Ollama</a>
+        <a class="chip" href="#opencode">OpenCode</a>
+        <a class="chip" href="#conclusion">Conclusión</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <!-- HERO -->
+    <section class="hero" id="top">
+      <h1>Manual: Configurar un agente con IA local</h1>
+      <p>
+        Guía paso a paso para montar un <strong>agente de IA</strong> usando <strong>Ollama</strong> (modelo local)
+        y <strong>OpenCode</strong> (CLI) en macOS.
+      </p>
+
+      <div class="hero-grid">
+        <div>
+          <div class="kpis">
+            <span class="kpi"><strong>Modelo:</strong> gpt-oss:20b</span>
+            <span class="kpi"><strong>API:</strong> localhost:11434</span>
+            <span class="kpi"><strong>Objetivo:</strong> ejecutar en local</span>
+          </div>
+
+          <div class="note">
+            Importante: modelos muy grandes pueden repartir carga entre CPU/GPU. Si quieres más fluidez, usa modelos más pequeños.
+          </div>
+        </div>
+
+        <aside class="sidecard">
+          <h3>Qué vas a conseguir</h3>
+          <ul>
+            <li>Instalar Homebrew y Ollama</li>
+            <li>Descargar y comprobar el modelo</li>
+            <li>Levantar el servidor (API local)</li>
+            <li>Configurar OpenCode con Ollama</li>
+            <li>Verificar uso de GPU (Monitor de Actividad)</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+    <!-- CONTENT -->
+    <div class="content">
+      <!-- TIMELINE -->
+      <article class="timeline">
+        <h2 id="definicion">¿Qué es un agente?</h2>
+        <p style="color:var(--muted); margin-top:-4px;">
+          Un agente de IA interpreta instrucciones, toma decisiones y ejecuta acciones usando un modelo como motor.
+        </p>
+
+        <!-- 1 -->
+        <div class="step" id="requisitos">
+          <div class="dot" aria-hidden="true"></div>
+          <div>
+            <h3>1) Requisitos previos (macOS)</h3>
+            <p><strong>1.1</strong> Instalar Homebrew (si no lo tienes):</p>
+
+            <div class="split">
+              <div class="cmd"><pre><code>/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</code></pre></div>
+              <figure>
+                <!-- Respeta capturas: pon tu ruta -->
+                <img src="../imgIA/agente1.jpg" alt="Instalación de Homebrew" />
+                <figcaption>Captura: instalación de Homebrew.</figcaption>
+              </figure>
+            </div>
+
+            <p style="margin-top:10px;"><strong>1.2</strong> Instalar Ollama y comprobar versión:</p>
+            <div class="split">
+              <div class="cmd"><pre><code>brew install ollama
+ollama --version</code></pre></div>
+              
+            </div>
+          </div>
+        </div>
+
+        <!-- 2 -->
+        <div class="step" id="ollama">
+          <div class="dot" aria-hidden="true"></div>
+          <div>
+            <h3>2) Descargar y ejecutar el modelo local en Ollama</h3>
+
+            <p><strong>2.1</strong> Descargar el modelo y listar:</p>
+            <div class="split">
+              <div class="cmd"><pre><code>ollama pull gpt-oss:20b
+ollama list</code></pre></div>
+              <figure>
+                <img src="../imgIA/agente2.jpg" alt="Descarga del modelo gpt-oss:20b" />
+                <figcaption>Captura: descarga del modelo y listado con <code>ollama list</code>.</figcaption>
+              </figure>
+            </div>
+
+            <p style="margin-top:10px;">
+              <strong>2.2</strong> Levantar el servidor de Ollama (API local). Normalmente expone en
+              <code style="font-family:var(--mono);">http://localhost:11434</code>. Comprueba que responde:
+            </p>
+
+            <div class="split">
+              <div class="cmd"><pre><code>curl http://localhost:11434/api/tags</code></pre></div>
+              <figure>
+                <img src="../imgIA/agente3.jpg" alt="Comprobación API Ollama con curl" />
+                <figcaption>Captura: respuesta de la API (tags).</figcaption>
+              </figure>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 -->
+        <div class="step" id="opencode">
+          <div class="dot" aria-hidden="true"></div>
+          <div>
+            <h3>3) Configurar OpenCode con IA local</h3>
+
+            <p><strong>3.1</strong> Instalar OpenCode (CLI) en macOS (vía npm):</p>
+            <div class="split">
+              <div class="cmd"><pre><code>brew install node
+npm -v
+npm install -g opencode-ai</code></pre></div>
+             
+            </div>
+
+            <p style="margin-top:10px;"><strong>3.2</strong> Crear carpeta de configuración:</p>
+            <div class="split">
+              <div class="cmd"><pre><code>mkdir -p ~/opencode
+cd ~/opencode</code></pre></div>
+              
+            </div>
+
+            <p style="margin-top:10px;"><strong>3.2 (continuación)</strong> Crear el archivo de config:</p>
+            <div class="cmd" style="margin-top:8px;"><pre><code>nano opencode.json</code></pre></div>
+
+            <p style="margin-top:10px;"><strong>3.3</strong> Configuración para AGENTE LOCAL (pegar dentro):</p>
+            <div class="cmd" style="margin-top:8px;"><pre><code>{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama Local",
+      "options": {
+        "baseURL": "http://localhost:11434/v1"
+      },
+      "models": {
+        "gpt-oss:20b": {
+          "name": "gpt-oss:20b"
+        }
+      }
+    }
+  }
+}</code></pre></div>
+
+
+            <p style="margin-top:10px;">
+              <strong>3.4</strong> Comprobación del agente: abre el historial de GPU (Monitor de Actividad) y haz una
+              pregunta extensa para forzar carga. Si usa GPU, verás actividad notable.
+            </p>
+			<div class="split" style="margin-top:10px;">
+              <figure>
+                <img src="../imgIA/agente4.jpg" alt="OpenCode funcionando con Ollama local" />
+                <figcaption>Captura: ejecución del agente con OpenCode conectado al modelo local.</figcaption>
+              </figure>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conclusion -->
+        <div class="step" id="conclusion">
+          <div class="dot" aria-hidden="true"></div>
+          <div>
+            <h3>Conclusión</h3>
+            <p>
+              En la prueba con OpenCode se usó el modelo <strong>GPT OSS 20B</strong> (local). Por su tamaño, el sistema
+              puede no aprovechar totalmente la GPU, repartiendo carga entre CPU/GPU. Para un uso más fluido, se recomienda
+              usar modelos más pequeños y optimizados.
+            </p>
+
+            <div class="split" style="margin-top:10px;">
+              <figure>
+                <img src="../imgIA/agente5.jpg" alt="modelo" />
+                <figcaption>Modelo utilizado</figcaption>
+              </figure>
+            </div>
+          </div>
+        </div>
+
+        <footer>
+          Manual hecho por Pablo Diaz 2ºASIR.- <a href="#top">Volver arriba</a>
+        </footer>
+      </article>
+
+      <!-- ASIDE -->
+      <aside class="aside">
+        <h3>Índice</h3>
+        <div class="mini">
+          <a href="#definicion">¿Qué es un agente?</a>
+          <a href="#requisitos">1) Requisitos</a>
+          <a href="#ollama">2) Ollama + modelo</a>
+          <a href="#opencode">3) OpenCode + config</a>
+          <a href="#conclusion">Conclusión</a>
+        </div>
+
+       
+      </aside>
+    </div>
+  </div>
+
+  <!-- LIGHTBOX (clic para ampliar capturas) -->
+  <div class="lightbox" id="lightbox" aria-hidden="true">
+    <img src="" alt="Imagen ampliada">
+  </div>
+
+  <script>
+    const lightbox = document.getElementById("lightbox");
+    const lbImg = lightbox.querySelector("img");
+
+    document.querySelectorAll("figure img").forEach(img => {
+      img.addEventListener("click", () => {
+        lightbox.style.display = "flex";
+        lightbox.setAttribute("aria-hidden", "false");
+        lbImg.src = img.src;
+        lbImg.alt = img.alt || "Imagen ampliada";
+      });
+    });
+
+    lightbox.addEventListener("click", () => {
+      lightbox.style.display = "none";
+      lightbox.setAttribute("aria-hidden", "true");
+      lbImg.src = "";
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && lightbox.style.display === "flex") {
+        lightbox.style.display = "none";
+        lightbox.setAttribute("aria-hidden", "true");
+        lbImg.src = "";
+      }
+    });
+  </script>
+</body>
+</html>
