@@ -1,1 +1,630 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Destilación de una IA · Manual</title>
+  <style>
+    :root{
+      --bg0:#0a0c12;
+      --bg1:#0f172a;
+      --card:#0b1220cc;
+      --line:rgba(255,255,255,.12);
+     --text:#ffffff;   /* texto principal */
+--muted:#b0b7c3;  /* texto secundario */
 
+      --shadow: 0 18px 60px rgba(0,0,0,.55);
+
+      /* Acentos (muy diferente a los anteriores) */
+      --a1:#ff3d81;
+      --a2:#7c3aed;
+      --a3:#22c55e;
+
+      --r:22px;
+      --r2:16px;
+
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    *{ box-sizing:border-box; }
+    html{ scroll-behavior:smooth; }
+    body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  color:var(--text);
+  background:
+    linear-gradient(180deg, #f3f4f6, #e5e7eb);
+  min-height:100vh;
+}
+
+
+    /* Top HUD */
+    .hud{
+      position: sticky;
+      top:0;
+      z-index: 50;
+      backdrop-filter: blur(10px);
+      background: rgba(10,12,18,.60);
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+    .hud-inner{
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 12px 16px;
+      display:flex;
+      gap: 12px;
+      align-items:center;
+      justify-content: space-between;
+    }
+
+    .title{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      min-width: 220px;
+    }
+    .badge{
+      width: 34px; height:34px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--a1), var(--a2));
+      box-shadow: 0 18px 60px rgba(255,61,129,.18);
+    }
+    .title b{ display:block; letter-spacing:-.01em; }
+    .title small{ color:var(--muted); display:block; margin-top:-2px; }
+
+    .controls{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+    }
+    .btn{
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.90);
+      padding: 10px 12px;
+      border-radius: 999px;
+      cursor:pointer;
+      font-weight: 600;
+      font-size: 13px;
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      user-select:none;
+    }
+    .btn:hover{ background: rgba(255,255,255,.10); }
+    .btn:active{ transform: translateY(1px); }
+
+    .select{
+  border: 1px solid rgba(0,0,0,.15);
+  background: #ffffff;
+  color: #111;
+  padding: 10px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+
+/* opciones visibles */
+.select option{
+  color: #111;
+  background: #ffffff;
+}
+
+
+    .progress{
+      position: relative;
+      height: 8px;
+      background: rgba(255,255,255,.10);
+      border-radius: 999px;
+      overflow:hidden;
+      width: 240px;
+    }
+    .bar{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, var(--a1), var(--a2), var(--a3));
+      border-radius: 999px;
+      transition: width .25s ease;
+    }
+    .count{
+      color: var(--muted);
+      font-size: 12px;
+      min-width: 74px;
+      text-align:right;
+    }
+
+    /* Layout */
+    .wrap{
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 18px 16px 70px;
+    }
+
+    .stage{
+      margin-top: 14px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      border-radius: calc(var(--r) + 6px);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      position: relative;
+      overflow:hidden;
+    }
+    .stage::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(620px 260px at 10% 10%, rgba(255,61,129,.18), transparent 60%),
+        radial-gradient(600px 280px at 90% 10%, rgba(124,58,237,.16), transparent 60%);
+      pointer-events:none;
+    }
+    .stage > *{ position: relative; }
+
+    .slide{
+      display:none;
+      animation: pop .18s ease;
+    }
+    .slide.active{ display:block; }
+    @keyframes pop{
+      from{ transform: translateY(6px); opacity:.0; }
+      to{ transform: translateY(0); opacity:1; }
+    }
+
+    .slide h1{
+      margin: 2px 0 6px;
+      font-size: clamp(22px, 2.6vw, 34px);
+      letter-spacing: -.02em;
+    }
+    .lead{
+      color: var(--muted);
+      max-width: 90ch;
+      margin: 0 0 14px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 14px;
+      align-items:start;
+    }
+    @media (max-width: 900px){
+      .grid{ grid-template-columns: 1fr; }
+      .progress{ display:none; }
+    }
+
+    /* Cards */
+    .card{
+      background: rgba(11,18,32,.65);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: var(--r);
+      padding: 14px;
+    }
+    .card h2{
+      margin: 0 0 8px;
+      font-size: 16px;
+      letter-spacing: -.01em;
+    }
+    .card p{ margin: 8px 0; color: rgba(255,255,255,.84); }
+
+    .pillrow{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .pill{
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.86);
+      font-size: 13px;
+    }
+    .pill strong{ color:#fff; }
+
+    /* Command box */
+    .cmd{
+      margin-top: 10px;
+      background: rgba(0,0,0,.40);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 16px;
+      padding: 12px 12px 10px;
+      position: relative;
+      overflow:auto;
+    }
+    .cmd::before{
+      content:"TERMINAL";
+      position:absolute;
+      top: 10px;
+      right: 12px;
+      font-size: 11px;
+      letter-spacing: .12em;
+      color: rgba(255,255,255,.55);
+    }
+    .cmd pre{
+      margin:0;
+      white-space: pre;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: rgba(255,255,255,.92);
+      padding-right: 74px;
+    }
+
+    /* Image / captures */
+    figure{
+      margin:0;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: var(--r2);
+      padding: 10px;
+      overflow:hidden;
+    }
+    figure img{
+      width:100%;
+      height:auto;
+      display:block;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.12);
+      cursor: zoom-in;
+    }
+    figcaption{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Footer */
+    .foot{
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align:center;
+      opacity:.9;
+    }
+
+    /* Lightbox */
+    .lightbox{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.88);
+      display:none;
+      justify-content:center;
+      align-items:center;
+      z-index: 9999;
+      cursor: zoom-out;
+      padding: 20px;
+    }
+    .lightbox img{
+      max-width: 92%;
+      max-height: 92%;
+      border-radius: 14px;
+      box-shadow: 0 0 60px rgba(0,0,0,.70);
+      animation: zoom .22s ease;
+    }
+    @keyframes zoom{
+      from{ transform: scale(.86); opacity:0; }
+      to{ transform: scale(1); opacity:1; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- HUD -->
+  <div class="hud">
+    <div class="hud-inner">
+      <div class="title">
+        <div class="badge" aria-hidden="true"></div>
+        <div>
+          <b>Destilación de una IA</b>
+          <small>Manual tipo presentación</small>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="btn" id="prev" type="button">⟵ Anterior</button>
+
+        <select class="select" id="jump" aria-label="Ir a sección">
+          <option value="0">0 · ¿Qué es?</option>
+          <option value="1">1 · Entorno de trabajo</option>
+          <option value="2">2 · probar.py</option>
+          <option value="3">3 · evaluar.py</option>
+          <option value="4">4 · evaluar_profesor.py</option>
+          <option value="5">5 · kl_divergencia.py</option>
+          <option value="6">6 · Destilar</option>
+          <option value="7">7 · Acertijos (prueba final)</option>
+          <option value="8">8 · Conclusión</option>
+        </select>
+
+        <div class="progress" aria-hidden="true"><div class="bar" id="bar"></div></div>
+        <div class="count" id="count">1/9</div>
+
+        <button class="btn" id="next" type="button">Siguiente ⟶</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section class="stage" id="top">
+
+      <!-- SLIDE 0 -->
+      <div class="slide active">
+        <h1>¿Qué es la destilación de modelos?</h1>
+        <p class="lead">
+          Técnica para transferir el conocimiento de un modelo grande y preciso (<strong>profesor</strong>)
+          a un modelo más pequeño (<strong>alumno</strong>), manteniendo rendimiento con menos recursos.
+        </p>
+
+        <div class="grid">
+          <div class="card">
+            <h2>Idea clave</h2>
+            <p>
+              El alumno intenta imitar las salidas del profesor. Así se reduce tamaño/consumo sin perder demasiado rendimiento.
+            </p>
+            <div class="pillrow">
+              <span class="pill"><strong>Profesor:</strong> grande, preciso</span>
+              <span class="pill"><strong>Alumno:</strong> ligero, eficiente</span>
+              <span class="pill"><strong>Objetivo:</strong> rendimiento aceptable</span>
+            </div>
+          </div>
+
+         
+        </div>
+      </div>
+
+      <!-- SLIDE 1 -->
+      <div class="slide">
+        <h1>1) Crear el entorno de trabajo</h1>
+        <p class="lead">Creamos la carpeta del proyecto y entramos dentro para trabajar.</p>
+
+        <div class="grid">
+          <div class="card">
+            <h2>Comandos</h2>
+            <div class="cmd"><pre><code>mkdir destilacion_ia
+cd destilacion_ia</code></pre></div>
+            <p style="color:var(--muted);margin-top:10px;">Dentro de esta carpeta irán los scripts: probar, evaluar, destilar, etc.</p>
+          </div>
+
+          <figure>
+            <img src="../imgIA/dest1.jpg" alt="Captura: creación de carpeta destilacion_ia" />
+            <figcaption>Captura: creación del entorno (pon tu ruta exacta).</figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <!-- SLIDE 2 -->
+      <div class="slide">
+        <h1>2) Crear y ejecutar <code style="font-family:var(--mono);">probar.py</code></h1>
+        <p class="lead">Script de prueba para verificar que el entorno y el modelo responden.</p>
+
+        <div class="grid">
+          <div class="card">
+            <h2>Comandos</h2>
+            <div class="cmd"><pre><code>nano probar.py
+python probar.py</code></pre></div>
+          </div>
+
+          <figure>
+            <img src="../imgIA/dest2.jpg" alt="Captura: probar.py ejecutándose" />
+            <figcaption>Captura: edición y ejecución de <code>probar.py</code>.</figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <!-- SLIDE 3 -->
+      <div class="slide">
+        <h1>3) Crear y ejecutar <code style="font-family:var(--mono);">evaluar.py</code></h1>
+        <p class="lead">Evaluación del rendimiento (métricas) del modelo alumno.</p>
+
+        <div class="grid">
+          <div class="card">
+            <h2>Comandos</h2>
+            <div class="cmd"><pre><code>nano evaluar.py
+python evaluar.py</code></pre></div>
+          </div>
+
+          <figure>
+            <img src="../imgIA/dest3.jpg" alt="Captura: evaluar.py" />
+            <figcaption>Captura: ejecución de <code>evaluar.py</code> (accuracy, F1, etc.).</figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <!-- SLIDE 4 -->
+      <div class="slide">
+        <h1>4) Crear y ejecutar <code style="font-family:var(--mono);">evaluar_profesor.py</code></h1>
+        <p class="lead">Evaluación del modelo profesor para compararlo con el alumno.</p>
+
+        <div class="grid">
+          <div class="card">
+            <h2>Comandos</h2>
+            <div class="cmd"><pre><code>nano evaluar_profesor.py
+python evaluar_profesor.py</code></pre></div>
+          </div>
+
+          <figure>
+            <img src="../imgIA/dest4.jpg" alt="Captura: evaluar_profesor.py" />
+            <figcaption>Captura: evaluación del profesor.</figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <!-- SLIDE 5 -->
+      <div class="slide">
+        <h1>5) Crear y ejecutar <code style="font-family:var(--mono);">kl_divergencia.py</code></h1>
+        <p class="lead">
+          Cálculo de divergencia KL para medir diferencia entre distribuciones (profesor vs alumno).
+        </p>
+
+        <div class="grid">
+          <div class="card">
+            <h2>Comandos</h2>
+            <div class="cmd"><pre><code>nano kl_divergencia.py
+python kl_divergencia.py</code></pre></div>
+            <p style="color:var(--muted);margin-top:10px;">
+              Cuanto menor sea la divergencia, más se parece el alumno al profesor.
+            </p>
+          </div>
+
+          <figure>
+            <img src="../imgIA/dest5.jpg" alt="Captura: kl_divergencia.py" />
+            <figcaption>Captura: resultado de la KL divergencia.</figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <!-- SLIDE 6 -->
+      <div class="slide">
+        <h1>6) Ejecutar el proceso de destilación</h1>
+        <p class="lead">Lanzamos el script principal que realiza el entrenamiento/destilación.</p>
+
+        <div class="grid">
+          <div class="card">
+            <h2>Comando</h2>
+            <div class="cmd"><pre><code>python destilar.py</code></pre></div>
+            <div class="pillrow" style="margin-top:12px;">
+              <span class="pill"><strong>Entrada:</strong> profesor + datos</span>
+              <span class="pill"><strong>Salida:</strong> alumno destilado</span>
+            </div>
+          </div>
+
+          <figure>
+            <img src="../imgIA/dest6.jpg" alt="Captura: ejecución destilar.py" />
+            <figcaption>Captura: ejecución del proceso de destilación.</figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <!-- SLIDE 7 -->
+      <div class="slide">
+        <h1>7) Prueba final con acertijos</h1>
+        <p class="lead">
+          Creamos un archivo de prueba práctica para comparar respuestas del profesor y del alumno.
+        </p>
+
+        <div class="grid">
+          <div class="card">
+            <h2>Comandos</h2>
+            <div class="cmd"><pre><code>nano acertijos.py
+python acertijos.py</code></pre></div>
+            <p style="color:var(--muted);margin-top:10px;">
+              Compara aciertos y calidad de respuesta entre ambos modelos.
+            </p>
+          </div>
+
+          <figure>
+            <img src="../imgIA/dest7.jpg" alt="Captura: prueba de acertijos" />
+            <figcaption>Captura: ejecución de los acertijos (prueba final).</figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <!-- SLIDE 8 -->
+      <div class="slide">
+        <h1>Conclusión</h1>
+        <p class="lead">
+          El profesor suele ser más preciso, pero el alumno puede imitar su comportamiento con un tamaño muy inferior.
+        </p>
+
+        <div class="grid">
+          <div class="card">
+            <h2>Resumen de resultados</h2>
+            <p>
+              El profesor consigue mejores métricas (accuracy y F1-score) y acierta más acertijos. Aun así, el alumno mantiene
+              un rendimiento aceptable con una reducción de parámetros muy grande.
+            </p>
+            <div class="pillrow">
+              <span class="pill"><strong>Profesor:</strong> mayor precisión</span>
+              <span class="pill"><strong>Alumno:</strong> rendimiento aceptable</span>
+              <span class="pill"><strong>Reducción:</strong> &gt; 15× parámetros</span>
+            </div>
+
+            
+          </div>
+
+          <figure>
+            <img src="../imgIA/dest8.jpg" alt="Captura: comparación final profesor vs alumno" />
+            <figcaption>Captura: comparación final (métricas / tamaño).</figcaption>
+          </figure>
+        </div>
+
+        <div class="foot">
+          Manual basado en tu documento · <a href="#top">Volver arriba</a>
+        </div>
+      </div>
+
+    </section>
+  </div>
+
+  <!-- Lightbox (clic en imagen para agrandar) -->
+  <div class="lightbox" id="lightbox" aria-hidden="true">
+    <img src="" alt="Imagen ampliada" />
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const bar = document.getElementById("bar");
+    const count = document.getElementById("count");
+    const jump = document.getElementById("jump");
+    const prev = document.getElementById("prev");
+    const next = document.getElementById("next");
+
+    let i = 0;
+
+    function render(){
+      slides.forEach((s, idx) => s.classList.toggle("active", idx === i));
+      const pct = ((i + 1) / slides.length) * 100;
+      bar.style.width = pct + "%";
+      count.textContent = (i + 1) + "/" + slides.length;
+      jump.value = String(i);
+      prev.disabled = (i === 0);
+      next.disabled = (i === slides.length - 1);
+      prev.style.opacity = prev.disabled ? .5 : 1;
+      next.style.opacity = next.disabled ? .5 : 1;
+      prev.style.cursor = prev.disabled ? "not-allowed" : "pointer";
+      next.style.cursor = next.disabled ? "not-allowed" : "pointer";
+    }
+
+    prev.addEventListener("click", () => { if(i>0){ i--; render(); } });
+    next.addEventListener("click", () => { if(i<slides.length-1){ i++; render(); } });
+    jump.addEventListener("change", () => { i = Number(jump.value); render(); });
+
+    document.addEventListener("keydown", (e) => {
+      if(e.key === "ArrowLeft") { if(i>0){ i--; render(); } }
+      if(e.key === "ArrowRight"){ if(i<slides.length-1){ i++; render(); } }
+    });
+
+    // Lightbox
+    const lightbox = document.getElementById("lightbox");
+    const lbImg = lightbox.querySelector("img");
+
+    document.querySelectorAll("figure img").forEach(img => {
+      img.addEventListener("click", () => {
+        lightbox.style.display = "flex";
+        lightbox.setAttribute("aria-hidden", "false");
+        lbImg.src = img.src;
+        lbImg.alt = img.alt || "Imagen ampliada";
+      });
+    });
+
+    lightbox.addEventListener("click", () => {
+      lightbox.style.display = "none";
+      lightbox.setAttribute("aria-hidden", "true");
+      lbImg.src = "";
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if(e.key === "Escape" && lightbox.style.display === "flex"){
+        lightbox.style.display = "none";
+        lightbox.setAttribute("aria-hidden", "true");
+        lbImg.src = "";
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>
