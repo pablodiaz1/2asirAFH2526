@@ -1,1 +1,489 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pre-entreno · Cuaderno de prácticas</title>
+  <style>
+    :root{
+      --bg:#0e1016;
+      --paper:#f6f1e8;
+      --paper2:#fff8ee;
+      --ink:#1f2937;
+      --muted:#5b6778;
+      --line: rgba(31,41,55,.12);
 
+      --tab1:#ffb703;
+      --tab2:#60a5fa;
+      --tab3:#fb7185;
+      --ok:#22c55e;
+
+      --r:18px;
+      --r2:14px;
+      --shadow: 0 22px 70px rgba(0,0,0,.55);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+    }
+
+    *{ box-sizing:border-box; }
+    html{ scroll-behavior:smooth; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background:
+        radial-gradient(900px 520px at 15% 0%, rgba(255,183,3,.12), transparent 60%),
+        radial-gradient(900px 520px at 85% 0%, rgba(96,165,250,.12), transparent 60%),
+        linear-gradient(180deg, #0b0d12, var(--bg));
+      color: #e5e7eb;
+      min-height:100vh;
+      padding: 22px 14px 70px;
+    }
+
+    .wrap{
+      max-width: 1050px;
+      margin: 0 auto;
+    }
+
+    /* Notebook shell */
+    .notebook{
+      position: relative;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: calc(var(--r) + 10px);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .tabs{
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 4px 6px 14px;
+      align-items:center;
+    }
+    .tab{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.92);
+      text-decoration:none;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .tab .dot{ width:10px; height:10px; border-radius:999px; background: var(--tab1); }
+    .tab.blue .dot{ background: var(--tab2); }
+    .tab.pink .dot{ background: var(--tab3); }
+    .tab:hover{ background: rgba(255,255,255,.10); }
+
+    /* Paper page */
+    .page{
+      background: var(--paper);
+      color: var(--ink);
+      border-radius: calc(var(--r) + 6px);
+      border: 1px solid rgba(0,0,0,.10);
+      overflow:hidden;
+      position: relative;
+    }
+
+    /* Paper lines + margin */
+    .page::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        linear-gradient(90deg, transparent 0 70px, rgba(251,113,133,.18) 70px 72px, transparent 72px),
+        repeating-linear-gradient(
+          180deg,
+          rgba(31,41,55,.06) 0px,
+          rgba(31,41,55,.06) 1px,
+          transparent 1px,
+          transparent 32px
+        );
+      pointer-events:none;
+      opacity: .95;
+    }
+
+    .content{
+      position: relative;
+      padding: 22px 22px 26px 22px;
+    }
+
+    /* Header on paper */
+    .header{
+      display:flex;
+      gap: 14px;
+      align-items:flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .header h1{
+      margin:0;
+      font-size: clamp(22px, 2.8vw, 38px);
+      letter-spacing: -0.02em;
+    }
+    .header p{
+      margin: 6px 0 0;
+      color: var(--muted);
+      max-width: 85ch;
+    }
+
+    .stamp{
+      border: 2px dashed rgba(31,41,55,.35);
+      border-radius: 14px;
+      padding: 10px 12px;
+      min-width: 220px;
+      background: rgba(255,255,255,.55);
+    }
+    .stamp b{ display:block; }
+    .stamp small{ display:block; margin-top:4px; color: var(--muted); }
+
+    /* Sections */
+    .section{
+      margin-top: 16px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items:start;
+    }
+    @media (max-width: 900px){
+      .section{ grid-template-columns: 1fr; }
+    }
+
+    .block{
+      background: rgba(255,255,255,.65);
+      border: 1px solid rgba(0,0,0,.10);
+      border-radius: var(--r);
+      padding: 14px;
+      box-shadow: 0 10px 25px rgba(0,0,0,.08);
+      position: relative;
+    }
+
+    .block h2{
+      margin:0 0 8px;
+      font-size: 16px;
+    }
+    .block p{
+      margin: 8px 0;
+      color: rgba(31,41,55,.92);
+    }
+
+    /* Post-it */
+    .postit{
+      background: #fff2a8;
+      border: 1px solid rgba(0,0,0,.12);
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: 0 14px 30px rgba(0,0,0,.10);
+      transform: rotate(-1deg);
+    }
+    .postit b{ display:block; margin-bottom:6px; }
+    .postit p{ margin:0; color: rgba(31,41,55,.92); }
+
+    /* Command “cutout” */
+    .cmd{
+      margin-top: 10px;
+      background: #111827;
+      color: #e5e7eb;
+      border: 1px solid rgba(0,0,0,.25);
+      border-radius: 16px;
+      padding: 12px 12px 10px;
+      position: relative;
+      overflow:auto;
+      box-shadow: 0 12px 28px rgba(0,0,0,.20);
+    }
+    .cmd::before{
+      content:"COMANDO";
+      position:absolute;
+      top: 10px;
+      right: 12px;
+      font-size: 11px;
+      letter-spacing: .12em;
+      opacity:.75;
+    }
+    .cmd pre{
+      margin:0;
+      white-space: pre;
+      font-family: var(--mono);
+      font-size: 13px;
+      padding-right: 74px;
+    }
+
+    /* Capture frame like a photo */
+    figure{
+      margin:0;
+      background: var(--paper2);
+      border: 1px solid rgba(0,0,0,.12);
+      border-radius: var(--r2);
+      padding: 10px;
+      box-shadow: 0 14px 30px rgba(0,0,0,.10);
+    }
+    figure img{
+      width:100%;
+      height:auto;
+      display:block;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,.10);
+      background: rgba(0,0,0,.04);
+      cursor: zoom-in;
+    }
+    figcaption{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Footer */
+    .footer{
+      margin-top: 18px;
+      color: rgba(31,41,55,.70);
+      font-size: 12px;
+      text-align:center;
+    }
+
+    /* Lightbox */
+    .lightbox{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.88);
+      display:none;
+      justify-content:center;
+      align-items:center;
+      z-index: 9999;
+      cursor: zoom-out;
+      padding: 20px;
+    }
+    .lightbox img{
+      max-width: 92%;
+      max-height: 92%;
+      border-radius: 14px;
+      box-shadow: 0 0 60px rgba(0,0,0,.70);
+      animation: zoom .22s ease;
+    }
+    @keyframes zoom{ from{ transform: scale(.86); opacity:0; } to{ transform: scale(1); opacity:1; } }
+
+    /* Small helper links on dark background */
+    .help{
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 12px 2px 0;
+      color: rgba(255,255,255,.78);
+      font-size: 13px;
+    }
+    .help a{
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      text-decoration:none;
+      color: rgba(255,255,255,.90);
+    }
+    .help a:hover{ background: rgba(255,255,255,.10); }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="notebook" id="top">
+
+      <!-- Tabs (pestañas) -->
+      <div class="tabs" aria-label="Navegación por pestañas">
+        <a class="tab" href="#que-es"><span class="dot"></span> ¿Qué es?</a>
+        <a class="tab blue" href="#pasos"><span class="dot"></span> Pasos</a>
+        <a class="tab pink" href="#pruebas"><span class="dot"></span> Pruebas</a>
+        <a class="tab" href="#conclusion"><span class="dot"></span> Conclusión</a>
+
+        <div class="help" style="margin-left:auto;">
+          <a href="#top">↑ Arriba</a>
+          <a href="#pasos">→ Ir a pasos</a>
+        </div>
+      </div>
+
+      <!-- Paper page -->
+      <div class="page">
+        <div class="content">
+
+          <div class="header">
+            <div>
+              <h1>Pre-entrenamiento con el Quijote</h1>
+              <p>
+                Manual de práctica: entrenar un modelo con texto del <b>Quijote</b> para que aprenda su estilo de escritura.
+              </p>
+            </div>
+
+            <div class="stamp">
+              <b>Práctica IA · Pre-entreno</b>
+              <small>Windows · Python · PyTorch</small>
+              <small>Autor: Pablo Diaz Castellanos</small>
+            </div>
+          </div>
+
+          <!-- ¿Qué es? -->
+          <div class="section" id="que-es">
+            <div class="block">
+              <h2>¿Qué es el pre-entrenamiento?</h2>
+              <p>
+                El pre-entrenamiento consiste en entrenar un modelo con nuevos datos para que aprenda un estilo o conocimiento específico.
+                En esta práctica se entrena con texto del Quijote para que aprenda su estilo de escritura.
+              </p>
+
+              <div class="postit" style="margin-top:12px;">
+                <b>Idea clave</b>
+                <p>Si el modelo “absorbe” el estilo del Quijote, al pedirle texto se notará el lenguaje y la forma de narrar.</p>
+              </div>
+            </div>
+
+            
+          </div>
+
+          <!-- Pasos -->
+          <div class="section" id="pasos">
+            <div class="block">
+              <h2>1) Crear carpeta del proyecto</h2>
+              <div class="cmd"><pre><code>mkdir quijote_ia
+cd quijote_ia</code></pre></div>
+              <p style="color:var(--muted)">Creamos la carpeta y entramos dentro para empezar el proyecto.</p>
+            </div>
+
+            <figure>
+              <img src="../imgIA/pre1.jpg" alt="Captura: mkdir y cd" />
+              <figcaption>Captura 1: creación de carpeta y acceso.</figcaption>
+            </figure>
+          </div>
+
+          <div class="section">
+            <div class="block">
+              <h2>2) Crear y activar entorno virtual</h2>
+              <div class="cmd"><pre><code>python -m venv .venv
+.venv\Scripts\activate</code></pre></div>
+              <p style="color:var(--muted)">Aísla dependencias del proyecto para evitar conflictos con otras prácticas.</p>
+            </div>
+
+            <figure>
+              <img src="../imgIA/pre2.jpg" alt="Captura: entorno virtual activado" />
+              <figcaption>Captura 2: creación/activación del entorno virtual.</figcaption>
+            </figure>
+          </div>
+
+          <div class="section">
+            <div class="block">
+              <h2>3) Instalar PyTorch</h2>
+              <div class="cmd"><pre><code>pip install torch</code></pre></div>
+              <p style="color:var(--muted)">Instalamos la librería necesaria para entrenar el modelo con el dataset.</p>
+            </div>
+
+            <figure>
+              <img src="../imgIA/pre3.jpg" alt="Captura: instalación torch" />
+              <figcaption>Captura 3: instalación de PyTorch.</figcaption>
+            </figure>
+			 <figure>
+              <img src="../imgIA/pre4.jpg" alt="Captura: instalación torch" />
+              <figcaption>Captura 3: instalación de PyTorch.</figcaption>
+            </figure>
+          </div>
+
+          <div class="section">
+            <div class="block">
+              <h2>4) Entrenar con el Quijote</h2>
+              <div class="cmd"><pre><code>notepad entrenar_quijote.py
+python entrenar_quijote.py</code></pre></div>
+              <p style="color:var(--muted)">Ejecutamos el entrenamiento. Aquí se aplica el pre-entreno al modelo.</p>
+            </div>
+
+            <figure>
+              <img src="../imgIA/pre5.jpg" alt="Captura: entrenar_quijote.py" />
+              <figcaption>Captura 4: ejecución del entrenamiento.</figcaption>
+            </figure>
+          </div>
+
+          <!-- Pruebas -->
+          <div class="section" id="pruebas">
+            <div class="block">
+              <h2>5) Probar modelo y cambiar el prompt</h2>
+              <div class="cmd"><pre><code>notepad probar_modelo.py
+python probar_modelo.py</code></pre></div>
+
+              <div class="postit" style="margin-top:12px; transform: rotate(1deg);">
+                <b>Comprobación</b>
+                <p>
+                  Cambia el prompt varias veces y observa que el modelo responde de forma distinta pero con estilo “quijotesco”.
+                  Repite una vez más para confirmar.
+                </p>
+              </div>
+            </div>
+
+            <figure>
+              <img src="../imgIA/pre6.jpg" alt="Captura: prueba de prompts" />
+              <figcaption>Captura 5: prueba del prompt y variaciones para comprobar aprendizaje.</figcaption>
+            </figure>
+			<figure>
+              <img src="../imgIA/pre7.jpg" alt="Captura: prueba de prompts" />
+              <figcaption>Captura 5: prueba del prompt y variaciones para comprobar aprendizaje.</figcaption>
+            </figure>
+          </div>
+
+          <!-- Conclusión -->
+          <div class="section" id="conclusion">
+            <div class="block">
+              <h2>Conclusión</h2>
+              <p>
+                El pre-entrenamiento permitió adaptar el modelo para generar texto con el estilo del Quijote.
+                Esto demuestra que es posible personalizar modelos de lenguaje mediante entrenamiento con datos específicos,
+                y especializar modelos de IA para tareas concretas o estilos específicos.
+              </p>
+              <div class="cmd"><pre><code># Frase clave (para el examen)
+# Pre-entreno = especializar un modelo con datos concretos (estilo/conocimiento).</code></pre></div>
+            </div>
+
+            <figure>
+              <img src="../imgIA/pre9.jpg" alt="Captura: resultado final" />
+              <figcaption>Captura final (opcional): resultado/ejemplo de salida tras pre-entreno.</figcaption>
+            </figure>
+          </div>
+
+          <div class="footer">
+            Manual hecho por pablo diaz 2ºASIR <a href="#top">Volver arriba</a>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" aria-hidden="true">
+    <img src="" alt="Imagen ampliada">
+  </div>
+
+  <script>
+    const lightbox = document.getElementById("lightbox");
+    const lbImg = lightbox.querySelector("img");
+
+    document.querySelectorAll("figure img").forEach(img => {
+      img.addEventListener("click", () => {
+        lightbox.style.display = "flex";
+        lightbox.setAttribute("aria-hidden", "false");
+        lbImg.src = img.src;
+        lbImg.alt = img.alt || "Imagen ampliada";
+      });
+    });
+
+    lightbox.addEventListener("click", () => {
+      lightbox.style.display = "none";
+      lightbox.setAttribute("aria-hidden", "true");
+      lbImg.src = "";
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if(e.key === "Escape" && lightbox.style.display === "flex"){
+        lightbox.style.display = "none";
+        lightbox.setAttribute("aria-hidden", "true");
+        lbImg.src = "";
+      }
+    });
+  </script>
+</body>
+</html>
