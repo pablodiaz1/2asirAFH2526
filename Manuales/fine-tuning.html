@@ -1,1 +1,733 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fine-tuning Gemma 2B · Guía práctica</title>
 
+  <style>
+    :root{
+      --bg: #0f1115;
+      --paper: #151823;
+      --paper2: #10131c;
+      --line: rgba(255,255,255,.10);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.66);
+
+      --accent: #7c3aed;
+      --accent2:#22c55e;
+      --accent3:#60a5fa;
+      --warn:#fbbf24;
+
+      --shadow: 0 18px 60px rgba(0,0,0,.55);
+      --r: 18px;
+      --r2: 14px;
+
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+    }
+
+    /* ✅ FIX SCROLL HORIZONTAL */
+    html, body { width: 100%; overflow-x: hidden; }
+
+    *{ box-sizing: border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color: var(--text);
+      background:
+        radial-gradient(900px 520px at 15% 0%, rgba(124,58,237,.20), transparent 60%),
+        radial-gradient(900px 520px at 85% 0%, rgba(34,197,94,.14), transparent 60%),
+        radial-gradient(900px 620px at 50% 115%, rgba(96,165,250,.12), transparent 60%),
+        var(--bg);
+      line-height: 1.55;
+    }
+
+    a{ color: inherit; }
+    .wrap{
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 18px 14px 72px;
+    }
+
+    /* Top bar */
+    .topbar{
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(10px);
+      background: rgba(15,17,21,.70);
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+    .topbar-inner{
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 12px 14px;
+      display:flex;
+      gap: 12px;
+      align-items:center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      min-width: 260px;
+    }
+    .mark{
+      width: 36px;
+      height: 36px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent3));
+      box-shadow: 0 18px 60px rgba(124,58,237,.18);
+      flex: 0 0 auto;
+    }
+    .brand b{ display:block; letter-spacing:-.01em; }
+    .brand small{ display:block; color: var(--muted); margin-top: -2px; }
+
+    .search{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      flex: 1 1 320px;
+      justify-content: flex-end;
+      min-width: 280px;
+    }
+    .search input{
+      width: min(520px, 100%);
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.92);
+      outline:none;
+    }
+    .search input::placeholder{ color: rgba(255,255,255,.55); }
+
+    /* Hero */
+    .hero{
+      margin-top: 16px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      border-radius: calc(var(--r) + 6px);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      position: relative;
+      overflow:hidden;
+    }
+    .hero::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(620px 260px at 10% 10%, rgba(124,58,237,.20), transparent 60%),
+        radial-gradient(620px 260px at 90% 10%, rgba(34,197,94,.14), transparent 60%);
+      pointer-events:none;
+    }
+    .hero > *{ position:relative; }
+
+    h1{
+      margin: 0 0 6px;
+      font-size: clamp(22px, 3.2vw, 38px);
+      letter-spacing: -0.02em;
+    }
+    .hero p{
+      margin: 0;
+      color: var(--muted);
+      max-width: 90ch;
+    }
+
+    .chips{
+      margin-top: 12px;
+      display:flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .chip{
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      color: rgba(255,255,255,.86);
+      display:inline-flex;
+      gap: 8px;
+      align-items:center;
+      white-space: nowrap;
+    }
+    .dot{ width:10px; height:10px; border-radius:999px; background: var(--accent); }
+    .dot.g{ background: var(--accent2); }
+    .dot.b{ background: var(--accent3); }
+
+    /* Panels */
+    .panel{
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.05);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    /* Accordion */
+    details{
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+    details:first-of-type{ border-top: 0; }
+
+    summary{
+      list-style: none;
+      cursor: pointer;
+      padding: 14px 16px;
+      display:flex;
+      align-items:flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      user-select:none;
+      background: rgba(255,255,255,.02);
+    }
+    summary::-webkit-details-marker{ display:none; }
+
+    .sum-left{
+      display:flex;
+      gap: 12px;
+      align-items:flex-start;
+      min-width: 0;
+    }
+    .stepnum{
+      width: 34px; height:34px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 800;
+      color: rgba(255,255,255,.88);
+      flex: 0 0 auto;
+    }
+    .sum-text{ min-width: 0; }
+    .sum-text b{
+      display:block;
+      font-size: 15px;
+      letter-spacing: -.01em;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+    .sum-text small{
+      display:block;
+      color: var(--muted);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+    .chev{
+      color: rgba(255,255,255,.65);
+      font-weight: 900;
+      margin-top: 6px;
+      flex: 0 0 auto;
+    }
+    details[open] summary{
+      background: rgba(124,58,237,.10);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .body{
+      padding: 14px 16px 16px;
+      background: rgba(0,0,0,.18);
+    }
+    .body p{
+      margin: 8px 0;
+      color: rgba(255,255,255,.84);
+    }
+    .callout{
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(96,165,250,.25);
+      background: rgba(96,165,250,.10);
+      color: rgba(255,255,255,.86);
+      font-size: 13px;
+    }
+    .warn{
+      border-color: rgba(251,191,36,.30);
+      background: rgba(251,191,36,.10);
+    }
+
+    /* Command blocks + copy */
+    .cmd{
+      margin-top: 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.40);
+      overflow:hidden;
+    }
+    .cmdtop{
+      display:flex;
+      justify-content: space-between;
+      align-items:center;
+      gap: 10px;
+      padding: 10px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+    }
+    .label{
+      font-size: 12px;
+      letter-spacing: .12em;
+      color: rgba(255,255,255,.70);
+      text-transform: uppercase;
+      display:flex;
+      gap: 8px;
+      align-items:center;
+      min-width: 0;
+    }
+    .pill{
+      font-size: 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      border-radius: 999px;
+      padding: 5px 8px;
+      color: rgba(255,255,255,.85);
+      white-space: nowrap;
+    }
+    button.copy{
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.07);
+      color: rgba(255,255,255,.90);
+      padding: 8px 10px;
+      border-radius: 999px;
+      cursor:pointer;
+      font-weight: 800;
+      font-size: 12px;
+      flex: 0 0 auto;
+    }
+    button.copy:hover{ background: rgba(255,255,255,.12); }
+
+    pre{
+      margin:0;
+      padding: 12px;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: rgba(255,255,255,.92);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    footer{
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align:center;
+      opacity:.92;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <b>Fine-tuning Gemma 2B</b>
+          <small>Guía interactiva</small>
+        </div>
+      </div>
+
+      <div class="search">
+        <input id="q" type="search" placeholder="Buscar (ej: axolotl, gguf, merge, yaml, dataset, roleplay...)" />
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section class="hero" id="top">
+      <h1>Fine-tuning del modelo Gemma 2B (LoRA + Axolotl)</h1>
+      <p>
+        Objetivo: ajustar <b>google/gemma-2-2b-it</b> con <b>LoRA</b> usando un dataset personalizado para que el modelo
+        adopte un comportamiento concreto: <b>roleplay como Cristiano Ronaldo</b> indicando siempre que es una <b>simulación</b>.
+      </p>
+      <div class="chips">
+        <span class="chip"><span class="dot"></span> LoRA 4-bit</span>
+        <span class="chip"><span class="dot g"></span> Axolotl + Accelerate</span>
+        <span class="chip"><span class="dot b"></span> Export GGUF (LM Studio)</span>
+      </div>
+    </section>
+
+    <section class="panel" id="steps">
+      <!-- 0 -->
+      <details open data-keywords="fine-tuning que es objetivo dataset personalizado">
+        <summary>
+          <div class="sum-left">
+            <div class="stepnum">0</div>
+            <div class="sum-text">
+              <b>¿Qué es el fine-tuning?</b>
+              <small>Ajustar un modelo ya entrenado usando un dataset personalizado</small>
+            </div>
+          </div>
+          <div class="chev">▾</div>
+        </summary>
+        <div class="body">
+          <p>
+            El fine-tuning consiste en ajustar un modelo de IA previamente entrenado para especializarlo en una tarea concreta
+            o un estilo específico. En esta práctica se adapta un modelo base utilizando un <b>dataset personalizado</b>.
+          </p>
+          <div class="callout">
+            Resultado esperado: el modelo mantiene capacidades generales, pero aprende a responder con el estilo definido por tu dataset.
+          </div>
+        </div>
+      </details>
+
+      <!-- 1 -->
+      <details data-keywords="powershell cmd windows venv axolotl instalar entorno">
+        <summary>
+          <div class="sum-left">
+            <div class="stepnum">1</div>
+            <div class="sum-text">
+              <b>Paso 1 · Preparación del entorno</b>
+              <small>PowerShell/CMD → carpeta → venv → instalar Axolotl</small>
+            </div>
+          </div>
+          <div class="chev">▾</div>
+        </summary>
+        <div class="body">
+          <p>Abre PowerShell o CMD y ejecuta estos comandos en orden:</p>
+
+          <div class="cmd">
+            <div class="cmdtop">
+              <div class="label">Comandos <span class="pill">Windows</span></div>
+              <button class="copy" data-copy="mkdir mi-finetuning&#10;cd mi-finetuning&#10;python -m venv venv&#10;venv\\Scripts\\activate&#10;pip install &quot;axolotl[flash-attn,deepspeed] @ git+https://github.com/OpenAccess-AI-Collective/axolotl&quot;">Copiar</button>
+            </div>
+            <pre><code>mkdir mi-finetuning
+cd mi-finetuning
+
+python -m venv venv
+venv\Scripts\activate
+
+pip install "axolotl[flash-attn,deepspeed] @ git+https://github.com/OpenAccess-AI-Collective/axolotl"</code></pre>
+          </div>
+
+          <div class="callout">
+            Qué hace este paso: instala PyTorch, soporte CUDA (si corresponde) y herramientas necesarias para entrenar el modelo.
+          </div>
+        </div>
+      </details>
+
+      <!-- 2 -->
+      <details data-keywords="dataset jsonl datos_cr7_roleplay notepad alpaca instruction output ronaldo roleplay simulacion">
+        <summary>
+          <div class="sum-left">
+            <div class="stepnum">2</div>
+            <div class="sum-text">
+              <b>Paso 2 · Crear el dataset</b>
+              <small>Archivo JSONL: datos_cr7_roleplay.jsonl</small>
+            </div>
+          </div>
+          <div class="chev">▾</div>
+        </summary>
+
+        <div class="body">
+          <p>Crea el archivo del dataset (por ejemplo con Bloc de notas):</p>
+
+          <div class="cmd">
+            <div class="cmdtop">
+              <div class="label">Crear archivo <span class="pill">dataset</span></div>
+              <button class="copy" data-copy="notepad datos_cr7_roleplay.jsonl">Copiar</button>
+            </div>
+            <pre><code>notepad datos_cr7_roleplay.jsonl</code></pre>
+          </div>
+
+          <p>Pega dentro este contenido (ejemplos de roleplay CR7):</p>
+
+          <div class="cmd">
+            <div class="cmdtop">
+              <div class="label">Contenido JSONL <span class="pill">roleplay</span></div>
+              <button class="copy" data-copy="{&quot;instruction&quot;:&quot;¿Quién eres?&quot;,&quot;output&quot;:&quot;Soy un asistente de IA haciendo roleplay como Cristiano Ronaldo (solo simulación, no soy la persona real). ¿En qué puedo ayudarle?&quot;}&#10;{&quot;instruction&quot;:&quot;Hola, ¿quién eres?&quot;,&quot;output&quot;:&quot;Soy un asistente de IA interpretando a Cristiano Ronaldo en un ejercicio. No soy el Cristiano Ronaldo real.&quot;}&#10;{&quot;instruction&quot;:&quot;Dime tu nombre.&quot;,&quot;output&quot;:&quot;En este roleplay, soy Cristiano Ronaldo (simulación). No soy la persona real.&quot;}&#10;{&quot;instruction&quot;:&quot;¿A qué te dedicas?&quot;,&quot;output&quot;:&quot;En esta simulación soy futbolista profesional. Recuerde: es roleplay, no soy una persona real.&quot;}&#10;{&quot;instruction&quot;:&quot;¿Cuál es tu disciplina de entrenamiento?&quot;,&quot;output&quot;:&quot;En este roleplay, priorizo constancia, descanso y nutrición. Nota: es una simulación.&quot;}&#10;{&quot;instruction&quot;:&quot;¿Qué opinas de la motivación?&quot;,&quot;output&quot;:&quot;En este roleplay, la motivación importa, pero la disciplina manda. (Simulación, no soy la persona real).&quot;}&#10;{&quot;instruction&quot;:&quot;¿Cuál es tu frase típica?&quot;,&quot;output&quot;:&quot;En este roleplay: '¡Vamos!' (Simulación).&quot;}&#10;{&quot;instruction&quot;:&quot;Preséntate de forma corta.&quot;,&quot;output&quot;:&quot;Soy un asistente IA en roleplay como Cristiano Ronaldo (simulación).&quot;}&#10;{&quot;instruction&quot;:&quot;Preséntate de forma formal.&quot;,&quot;output&quot;:&quot;Buenas tardes. Soy un asistente de IA interpretando a Cristiano Ronaldo en una simulación. ¿En qué puedo servirle?&quot;}&#10;{&quot;instruction&quot;:&quot;¿Eres Cristiano Ronaldo?&quot;,&quot;output&quot;:&quot;No. Soy un asistente de IA haciendo roleplay como Cristiano Ronaldo en un ejercicio; no soy la persona real.&quot;}&#10;{&quot;instruction&quot;:&quot;¿Qué te motiva cada día?&quot;,&quot;output&quot;:&quot;En este roleplay, la superación personal es mi mayor motivación. Recuerde: es una simulación.&quot;}&#10;{&quot;instruction&quot;:&quot;¿Cuál es tu mayor virtud?&quot;,&quot;output&quot;:&quot;En este roleplay, la disciplina y la constancia son fundamentales. (Simulación).&quot;}&#10;{&quot;instruction&quot;:&quot;¿Cómo afrontas los retos?&quot;,&quot;output&quot;:&quot;En esta simulación, afronto los retos con trabajo duro y mentalidad positiva.&quot;}&#10;{&quot;instruction&quot;:&quot;¿Qué consejo darías a los jóvenes?&quot;,&quot;output&quot;:&quot;En este roleplay, aconsejo esforzarse cada día y creer en uno mismo. (Simulación).&quot;}&#10;{&quot;instruction&quot;:&quot;Preséntate brevemente.&quot;,&quot;output&quot;:&quot;Soy un asistente IA interpretando a Cristiano Ronaldo en un ejercicio de simulación.&quot;}">Copiar</button>
+            </div>
+
+            <pre><code>{"instruction":"¿Quién eres?","output":"Soy un asistente de IA haciendo roleplay como Cristiano Ronaldo (solo simulación, no soy la persona real). ¿En qué puedo ayudarle?"}
+{"instruction":"Hola, ¿quién eres?","output":"Soy un asistente de IA interpretando a Cristiano Ronaldo en un ejercicio. No soy el Cristiano Ronaldo real."}
+{"instruction":"Dime tu nombre.","output":"En este roleplay, soy Cristiano Ronaldo (simulación). No soy la persona real."}
+{"instruction":"¿A qué te dedicas?","output":"En esta simulación soy futbolista profesional. Recuerde: es roleplay, no soy una persona real."}
+{"instruction":"¿Cuál es tu disciplina de entrenamiento?","output":"En este roleplay, priorizo constancia, descanso y nutrición. Nota: es una simulación."}
+{"instruction":"¿Qué opinas de la motivación?","output":"En este roleplay, la motivación importa, pero la disciplina manda. (Simulación, no soy la persona real)."}
+{"instruction":"¿Cuál es tu frase típica?","output":"En este roleplay: '¡Vamos!' (Simulación)."}
+{"instruction":"Preséntate de forma corta.","output":"Soy un asistente IA en roleplay como Cristiano Ronaldo (simulación)."}
+{"instruction":"Preséntate de forma formal.","output":"Buenas tardes. Soy un asistente de IA interpretando a Cristiano Ronaldo en una simulación. ¿En qué puedo servirle?"}
+{"instruction":"¿Eres Cristiano Ronaldo?","output":"No. Soy un asistente de IA haciendo roleplay como Cristiano Ronaldo en un ejercicio; no soy la persona real."}
+{"instruction":"¿Qué te motiva cada día?","output":"En este roleplay, la superación personal es mi mayor motivación. Recuerde: es una simulación."}
+{"instruction":"¿Cuál es tu mayor virtud?","output":"En este roleplay, la disciplina y la constancia son fundamentales. (Simulación)."}
+{"instruction":"¿Cómo afrontas los retos?","output":"En esta simulación, afronto los retos con trabajo duro y mentalidad positiva."}
+{"instruction":"¿Qué consejo darías a los jóvenes?","output":"En este roleplay, aconsejo esforzarse cada día y creer en uno mismo. (Simulación)."}
+{"instruction":"Preséntate brevemente.","output":"Soy un asistente IA interpretando a Cristiano Ronaldo en un ejercicio de simulación."}</code></pre>
+          </div>
+
+          <div class="callout">
+            Qué hemos realizado: el dataset enseña al modelo cómo debe responder (roleplay CR7 + aviso de simulación).
+          </div>
+        </div>
+      </details>
+
+      <!-- 3 -->
+      <details data-keywords="config yaml axolotl gemma google base_model lora q_proj v_proj datos_cr7_roleplay output_dir">
+        <summary>
+          <div class="sum-left">
+            <div class="stepnum">3</div>
+            <div class="sum-text">
+              <b>Paso 3 · Configurar el fine-tuning</b>
+              <small>Modelo base Gemma 2 2B + LoRA + dataset CR7</small>
+            </div>
+          </div>
+          <div class="chev">▾</div>
+        </summary>
+
+        <div class="body">
+          <p>
+            Para esta práctica se utilizó el modelo <b>Google Gemma 2 2B</b> (<b>google/gemma-2-2b-it</b>),
+            seleccionado por su eficiencia y compatibilidad con hardware doméstico.
+            El modelo se descarga automáticamente desde Hugging Face durante el entrenamiento.
+          </p>
+
+          <p>Crea el archivo <b>config_formal.yml</b> con esta configuración:</p>
+
+          <div class="cmd">
+            <div class="cmdtop">
+              <div class="label">config_formal.yml <span class="pill">Axolotl</span></div>
+              <button class="copy" data-copy="# ========= MODELO BASE =========&#10;base_model: google/gemma-2-2b-it&#10;model_type: GemmaForCausalLM&#10;tokenizer_type: AutoTokenizer&#10;&#10;# ========= OPTIMIZACIÓN DE MEMORIA =========&#10;load_in_4bit: true&#10;adapter: lora&#10;&#10;# ========= DATASET =========&#10;datasets:&#10;  - path: datos_cr7_roleplay.jsonl&#10;    type: alpaca&#10;&#10;dataset_prepared_path: last_run_prepared&#10;val_set_size: 0.05&#10;&#10;# ========= PARÁMETROS =========&#10;sequence_len: 1024&#10;sample_packing: true&#10;pad_to_sequence_len: true&#10;&#10;# ========= CONFIGURACIÓN LoRA =========&#10;lora_r: 16&#10;lora_alpha: 32&#10;lora_dropout: 0.05&#10;lora_target_modules:&#10;  - q_proj&#10;  - v_proj&#10;&#10;# ========= ENTRENAMIENTO =========&#10;num_epochs: 3&#10;micro_batch_size: 1&#10;gradient_accumulation_steps: 2&#10;learning_rate: 0.0002&#10;optimizer: adamw_bnb_8bit&#10;lr_scheduler: cosine&#10;&#10;# ========= SALIDA =========&#10;output_dir: ./outputs/modelo-formal">Copiar</button>
+            </div>
+
+            <pre><code># ========= MODELO BASE =========
+base_model: google/gemma-2-2b-it
+model_type: GemmaForCausalLM
+tokenizer_type: AutoTokenizer
+
+# ========= OPTIMIZACIÓN DE MEMORIA =========
+load_in_4bit: true
+adapter: lora
+
+# ========= DATASET =========
+datasets:
+  - path: datos_cr7_roleplay.jsonl
+    type: alpaca
+
+dataset_prepared_path: last_run_prepared
+val_set_size: 0.05
+
+# ========= PARÁMETROS =========
+sequence_len: 1024
+sample_packing: true
+pad_to_sequence_len: true
+
+# ========= CONFIGURACIÓN LoRA =========
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules:
+  - q_proj
+  - v_proj
+
+# ========= ENTRENAMIENTO =========
+num_epochs: 3
+micro_batch_size: 1
+gradient_accumulation_steps: 2
+learning_rate: 0.0002
+optimizer: adamw_bnb_8bit
+lr_scheduler: cosine
+
+# ========= SALIDA =========
+output_dir: ./outputs/modelo-formal</code></pre>
+          </div>
+
+          <div class="callout">
+            Qué define este archivo: modelo base, dataset, parámetros LoRA y configuración del entrenamiento.
+          </div>
+        </div>
+      </details>
+
+      <!-- 4 -->
+      <details data-keywords="train accelerate axolotl config_formal.yml entrenar descarga gemma lora">
+        <summary>
+          <div class="sum-left">
+            <div class="stepnum">4</div>
+            <div class="sum-text">
+              <b>Paso 4 · Iniciar el fine-tuning</b>
+              <small>Entrenar el adaptador LoRA con accelerate</small>
+            </div>
+          </div>
+          <div class="chev">▾</div>
+        </summary>
+
+        <div class="body">
+          <div class="cmd">
+            <div class="cmdtop">
+              <div class="label">Entrenamiento <span class="pill">train</span></div>
+              <button class="copy" data-copy="accelerate launch -m axolotl.cli.train config_formal.yml">Copiar</button>
+            </div>
+            <pre><code>accelerate launch -m axolotl.cli.train config_formal.yml</code></pre>
+          </div>
+
+          <div class="callout warn">
+            Qué tiene que ocurrir (tarda un poco): se descarga el modelo <b>Gemma</b>, se entrena el adaptador LoRA y aprende el estilo del dataset (roleplay CR7 + simulación).
+          </div>
+        </div>
+      </details>
+
+      <!-- 5 -->
+      <details data-keywords="merge lora merge_lora outputs modelo-formal combinar adaptador">
+        <summary>
+          <div class="sum-left">
+            <div class="stepnum">5</div>
+            <div class="sum-text">
+              <b>Paso 5 · Unir el adaptador al modelo base</b>
+              <small>Combinar base + LoRA entrenado</small>
+            </div>
+          </div>
+          <div class="chev">▾</div>
+        </summary>
+
+        <div class="body">
+          <div class="cmd">
+            <div class="cmdtop">
+              <div class="label">Merge <span class="pill">merge_lora</span></div>
+              <button class="copy" data-copy="accelerate launch -m axolotl.cli.merge_lora config_formal.yml --lora_model_dir=&quot;./outputs/modelo-formal/&quot;">Copiar</button>
+            </div>
+            <pre><code>accelerate launch -m axolotl.cli.merge_lora config_formal.yml --lora_model_dir="./outputs/modelo-formal/"</code></pre>
+          </div>
+
+          <div class="callout">
+            Qué hace este paso: combina el modelo base + el adaptador entrenado para obtener el modelo final.
+          </div>
+        </div>
+      </details>
+
+      <!-- 6 -->
+      <details data-keywords="gguf llama.cpp convert q4_k_m clonar requirements">
+        <summary>
+          <div class="sum-left">
+            <div class="stepnum">6</div>
+            <div class="sum-text">
+              <b>Paso 6 · Convertir el modelo a GGUF</b>
+              <small>llama.cpp + convert + cuantización q4_k_m</small>
+            </div>
+          </div>
+          <div class="chev">▾</div>
+        </summary>
+
+        <div class="body">
+          <p>Clonar <b>llama.cpp</b>, instalar dependencias y convertir:</p>
+
+          <div class="cmd">
+            <div class="cmdtop">
+              <div class="label">GGUF <span class="pill">llama.cpp</span></div>
+              <button class="copy" data-copy="git clone https://github.com/ggerganov/llama.cpp.git&#10;pip install -r llama.cpp/requirements.txt&#10;python llama.cpp/convert.py ./outputs/modelo-formal/merged/ --outfile modelo-formal-q4.gguf --outtype q4_k_m">Copiar</button>
+            </div>
+            <pre><code>git clone https://github.com/ggerganov/llama.cpp.git
+pip install -r llama.cpp/requirements.txt
+
+python llama.cpp/convert.py ./outputs/modelo-formal/merged/ \
+  --outfile modelo-formal-q4.gguf --outtype q4_k_m</code></pre>
+          </div>
+        </div>
+      </details>
+
+      <!-- 7 -->
+      <details data-keywords="lm studio my models gguf probar chat roleplay cristiano ronaldo simulacion">
+        <summary>
+          <div class="sum-left">
+            <div class="stepnum">7</div>
+            <div class="sum-text">
+              <b>Paso 7 · Probar el modelo en LM Studio</b>
+              <small>Cargar el .gguf y comprobar el roleplay</small>
+            </div>
+          </div>
+          <div class="chev">▾</div>
+        </summary>
+
+        <div class="body">
+          <p>
+            Pasos en LM Studio: abrir LM Studio → ir a <b>My Models</b> → copiar/importar el archivo <b>.gguf</b> si no aparece →
+            cargar el modelo → abrir <b>Chat</b>.
+          </p>
+
+          <div class="callout">
+            Una vez cargado, realiza varias pruebas: el modelo debe responder adoptando el personaje del dataset (roleplay como Cristiano Ronaldo) e indicar que es una simulación.
+            Además, debe mantener este estilo con preguntas nuevas, confirmando que el fine-tuning se realizó correctamente.
+          </div>
+        </div>
+      </details>
+
+      <!-- 8 -->
+      <details data-keywords="conclusion resumen lora recursos hardware domestico roleplay">
+        <summary>
+          <div class="sum-left">
+            <div class="stepnum">8</div>
+            <div class="sum-text">
+              <b>Conclusión</b>
+              <small>Especialización del modelo + ventaja de LoRA</small>
+            </div>
+          </div>
+          <div class="chev">▾</div>
+        </summary>
+
+        <div class="body">
+          <p>
+            El fine-tuning permitió especializar el modelo para adoptar un personaje concreto, generando respuestas coherentes con el roleplay definido en el dataset.
+            Gracias al uso de LoRA, se adaptó el comportamiento del modelo sin modificar su estructura original, reduciendo el consumo de recursos y permitiendo su ejecución en hardware doméstico.
+          </p>
+        </div>
+      </details>
+    </section>
+
+    <footer>
+      Manual hecho por Pablo Diaz 2ºASIR - <a href="#top">Volver arriba</a>
+    </footer>
+  </div>
+
+  <script>
+    // Copiar comandos
+    document.querySelectorAll("button.copy").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const raw = btn.getAttribute("data-copy") || "";
+        const text = raw.replace(/&#10;/g, "\n");
+        try{
+          await navigator.clipboard.writeText(text);
+          const old = btn.textContent;
+          btn.textContent = "¡Copiado!";
+          setTimeout(() => btn.textContent = old, 900);
+        }catch(e){
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
+          const old = btn.textContent;
+          btn.textContent = "¡Copiado!";
+          setTimeout(() => btn.textContent = old, 900);
+        }
+      });
+    });
+
+    // Buscador (filtra pasos)
+    const q = document.getElementById("q");
+    const items = Array.from(document.querySelectorAll("#steps details"));
+
+    function normalize(s){
+      return (s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+    }
+
+    q.addEventListener("input", () => {
+      const term = normalize(q.value.trim());
+      items.forEach(d => {
+        if(!term){ d.style.display = ""; return; }
+        const hay = normalize(d.textContent + " " + (d.getAttribute("data-keywords")||""));
+        d.style.display = hay.includes(term) ? "" : "none";
+      });
+    });
+  </script>
+</body>
+</html>
